@@ -188,6 +188,7 @@ let widget=null;
 let selectedSymbol=null;
 let currentTheme="light";
 let contextSymbol=null;
+let isMasterScanner=false;
 
 let settings={ sound:true };
 
@@ -212,6 +213,26 @@ if(s) settings = JSON.parse(s);
 
 function saveSettings(){
 localStorage.setItem("rvolSettings", JSON.stringify(settings));
+}
+
+async function checkScannerLock(){
+
+const snapshot = await db.ref("scannerLock").once("value");
+
+if(!snapshot.exists()){
+
+await db.ref("scannerLock").set(true);
+
+isMasterScanner = true;
+
+console.log("MASTER SCANNER");
+
+}else{
+
+console.log("VIEWER MODE");
+
+}
+
 }
 
 document.getElementById("resetBtn").onclick=()=>{
@@ -501,8 +522,9 @@ await new Promise(r=>setTimeout(r,300000));
 
 async function init(){
 
-loadList();
+await loadList();
 
+await checkScannerLock();
 
 document.getElementById("soundToggle").checked=settings.sound;
 
@@ -512,15 +534,26 @@ await fetchSymbols();
 
 initChart();
 
+if(isMasterScanner){
 scannerLoop();
+}
 
 }
 
 init();
 
+window.addEventListener("beforeunload",()=>{
+
+if(isMasterScanner){
+
+db.ref("scannerLock").remove();
+
+}
+
+});
+
+
 </script>
 
 </body>
 </html>
-
-
