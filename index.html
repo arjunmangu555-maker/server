@@ -253,7 +253,11 @@ const res=await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
 const data=await res.json();
 
 symbols=data.symbols
-.filter(s=>s.contractType==="PERPETUAL" && s.quoteAsset==="USDT")
+.filter(s=>
+s.contractType==="PERPETUAL" &&
+s.quoteAsset==="USDT" &&
+s.status==="TRADING"
+)
 .map(s=>s.symbol)
 
 }
@@ -557,3 +561,4 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
+
