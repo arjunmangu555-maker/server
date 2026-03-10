@@ -503,6 +503,8 @@ async function init(){
 
 loadList();
 
+db.ref("scanner/test").set("Firebase Working");
+
 document.getElementById("soundToggle").checked=settings.sound;
 
 render();
@@ -521,3 +523,4 @@ init();
 
 </body>
 </html>
+
