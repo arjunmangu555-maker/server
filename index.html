@@ -5,108 +5,116 @@
 <title>RVOL Scanner</title>
 <script src="https://s3.tradingview.com/tv.js"></script>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
 <style>
 body{margin:0;font-family:Arial;}
 .container{display:flex;height:100vh;}
 
 .left{
-    width:15%;
-    border-right:2px solid #008571;
-    overflow:auto;
+width:15%;
+border-right:2px solid #008571;
+overflow:auto;
 }
 
 .right{width:85%;}
 
 table{
-    width:100%;
-    border-collapse:collapse;
+width:100%;
+border-collapse:collapse;
 }
 
 thead{
-    position:sticky;
-    top:0;
-    background:#008571;
-    color:white;
-    z-index:10;
+position:sticky;
+top:0;
+background:#008571;
+color:white;
+z-index:10;
 }
 
 th,td{
-    padding:6px;
-    border-bottom:1px solid #008571;
-    font-size:12px;
+padding:6px;
+border-bottom:1px solid #008571;
+font-size:12px;
 }
 
 tbody tr:hover{
 background:#FCE3E3;
 cursor:pointer;
 }
+
 .selected{background:#ffe08a !important;}
 
-}
-
 .sectionHeader{
-    background:#f0f0f0;
-    font-weight:bold;
-    text-align:left;
+background:#f0f0f0;
+font-weight:bold;
+text-align:left;
 }
 
 .dividerRow td{
-    padding:0;
-    height:8px;
-    border-top:3px solid #008571;
-    background:none;
+padding:0;
+height:8px;
+border-top:3px solid #008571;
+background:none;
 }
 
 #status{
-    padding:6px;
-    font-size:12px;
-    background:#008571;
-    color:white;
-    display:flex;
-    align-items:center;
-    gap:5px;
+padding:6px;
+font-size:12px;
+background:#008571;
+color:white;
+display:flex;
+align-items:center;
+gap:5px;
 }
 
 #themeBtn,#settingsBtn{
-    font-size:10px;
-    padding:2px 6px;
-    cursor:pointer;
-    border:none;
-    border-radius:3px;
+font-size:10px;
+padding:2px 6px;
+cursor:pointer;
+border:none;
+border-radius:3px;
 }
 
 #contextMenu{
-    position:absolute;
-    display:none;
-    background:white;
-    border:1px solid #ccc;
-    box-shadow:0 2px 6px rgba(0,0,0,0.2);
-    font-size:12px;
-    z-index:1000;
+position:absolute;
+display:none;
+background:white;
+border:1px solid #ccc;
+box-shadow:0 2px 6px rgba(0,0,0,0.2);
+font-size:12px;
+z-index:1000;
 }
+
 #contextMenu div{
-    padding:6px;
-    cursor:pointer;
+padding:6px;
+cursor:pointer;
 }
+
 #contextMenu div:hover{
-    background:#f0f0f0;
+background:#f0f0f0;
 }
+
 #deleteOption{color:red;}
 
 #settingsPopup{
-    position:absolute;
-    display:none;
-    background:white;
-    border:1px solid #ccc;
-    padding:8px;
-    font-size:12px;
-    z-index:2000;
+position:absolute;
+display:none;
+background:white;
+border:1px solid #ccc;
+padding:8px;
+font-size:12px;
+z-index:2000;
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
+
 <div class="left">
 
 <div id="status">
@@ -121,11 +129,13 @@ cursor:pointer;
 </thead>
 <tbody id="body"></tbody>
 </table>
+
 </div>
 
 <div class="right">
 <div id="chart" style="height:100%;width:100%;"></div>
 </div>
+
 </div>
 
 <div id="contextMenu">
@@ -153,6 +163,25 @@ Sound Alert
 
 <script>
 
+/* FIREBASE INIT */
+
+const firebaseConfig = {
+apiKey: "AIzaSyAwykQh11OnQrfLupJ6upB3DwcERVal044",
+authDomain: "rvol-e92cd.firebaseapp.com",
+databaseURL: "https://rvol-e92cd-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "rvol-e92cd",
+storageBucket: "rvol-e92cd.firebasestorage.app",
+messagingSenderId: "479312598684",
+appId: "1:479312598684:web:380d64346e5e58d1a4bf59",
+measurementId: "G-9FGKSK1CD6"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+/* ORIGINAL CODE */
+
 let symbols=[];
 let highRvolSymbols={};
 let widget=null;
@@ -163,15 +192,22 @@ let contextSymbol=null;
 let settings={ sound:true };
 
 function saveList(){
-localStorage.setItem("RVOL_SCANNER_5M_200_LIST", JSON.stringify(highRvolSymbols));
+db.ref("scanner").set(highRvolSymbols);
 }
 
 function loadList(){
-const data = localStorage.getItem("RVOL_SCANNER_5M_200_LIST");
-if(data) highRvolSymbols = JSON.parse(data);
+
+db.ref("scanner").once("value").then(snapshot=>{
+
+highRvolSymbols = snapshot.val() || {};
+
+render();
+
+});
 
 const s = localStorage.getItem("rvolSettings");
 if(s) settings = JSON.parse(s);
+
 }
 
 function saveSettings(){
@@ -182,7 +218,7 @@ document.getElementById("resetBtn").onclick=()=>{
 
 if(confirm("Reset Scanner ? All saved data will be cleared.")){
 
-localStorage.removeItem("RVOL_SCANNER_5M_200_LIST");
+db.ref("scanner").remove();
 
 location.reload();
 
@@ -202,94 +238,93 @@ symbols=data.symbols
 }
 
 async function getRVOLData(symbol){
-    try{
+try{
 
-        const res=await fetch(
-        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`);
+const res=await fetch(
+`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`);
 
-        const data=await res.json();
-        if(!Array.isArray(data)) return null;
+const data=await res.json();
+if(!Array.isArray(data)) return null;
 
-        let vols=data.map(x=>parseFloat(x[5]));
+let vols=data.map(x=>parseFloat(x[5]));
 
-        // 0-199 = average (200 candles)
-        let avg=vols.slice(0,200).reduce((a,b)=>a+b,0)/200;
+let avg=vols.slice(0,200).reduce((a,b)=>a+b,0)/200;
 
-        // 200-204 = last 5 CLOSED candles
-        let last5=vols.slice(200,205);
+let last5=vols.slice(200,205);
 
-        let rvols=last5.map(v=>v/avg);
+let rvols=last5.map(v=>v/avg);
 
-        let condition=rvols.every(v=>v>=3);
+let condition=rvols.every(v=>v>=3);
 
-        if(condition){
-            return rvols[4];
-        }
+if(condition){
+return rvols[4];
+}
 
-        return null;
+return null;
 
-    }catch{
-        return null;
-    }
+}catch{
+return null;
+}
 }
 
 async function scan(){
 
-    document.getElementById("updateText").innerText="Scanning...";
+document.getElementById("updateText").innerText="Scanning...";
 
-    const batchSize=100;
-    const delay=25000;
+const batchSize=100;
+const delay=25000;
 
-    for(let i=0;i<symbols.length;i+=batchSize){
+for(let i=0;i<symbols.length;i+=batchSize){
 
-        let batch=symbols.slice(i,i+batchSize);
+let batch=symbols.slice(i,i+batchSize);
 
-        let promises=batch.map(s=>getRVOLData(s).then(r=>({s,r})));
+let promises=batch.map(s=>getRVOLData(s).then(r=>({s,r})));
 
-        let results=await Promise.all(promises);
+let results=await Promise.all(promises);
 
-        for(let item of results){
+for(let item of results){
 
-            if(item.r){
+if(item.r){
 
-                if(!highRvolSymbols[item.s]){
+if(!highRvolSymbols[item.s]){
 
-                    if(settings.sound){
-                        document.getElementById("alertSound").play();
-                    }
+if(settings.sound){
+document.getElementById("alertSound").play();
+}
 
-                    // NEW SYMBOL TOP
-                    highRvolSymbols={
-                        [item.s]:item.r,
-                        ...highRvolSymbols
-                    };
+highRvolSymbols={
+[item.s]:item.r,
+...highRvolSymbols
+};
 
-                }
+}
 
-            }
+}
 
-        }
+}
 
-        render();
-        saveList();
+render();
+saveList();
 
-        if(i+batchSize<symbols.length){
-            await new Promise(r=>setTimeout(r,delay));
-        }
-    }
+if(i+batchSize<symbols.length){
+await new Promise(r=>setTimeout(r,delay));
+}
 
-    document.getElementById("updateText").innerText=
-    "Updated: "+new Date().toLocaleTimeString();
+}
+
+document.getElementById("updateText").innerText=
+"Updated: "+new Date().toLocaleTimeString();
+
 }
 
 function render(){
-    const tbody=document.getElementById("body");
-    tbody.innerHTML="";
+const tbody=document.getElementById("body");
+tbody.innerHTML="";
 
-    Object.keys(highRvolSymbols)
-    .forEach(s=>{
-        createRow(s);
-    });
+Object.keys(highRvolSymbols)
+.forEach(s=>{
+createRow(s);
+});
 }
 
 function createRow(s){
@@ -297,7 +332,7 @@ function createRow(s){
 let row=document.createElement("tr");
 
 if(selectedSymbol===s)
-row.classList.add("selected");	
+row.classList.add("selected");
 
 row.innerHTML=`
 <td>${s}</td>
@@ -400,7 +435,6 @@ saveSettings();
 document.addEventListener("click",(e)=>{
 
 if(!e.target.closest("#settingsBtn"))
-
 document.getElementById("settingsPopup").style.display="none";
 
 });
@@ -447,11 +481,8 @@ function toggleTheme(){
 currentTheme=currentTheme==="light"?"dark":"light";
 
 if(selectedSymbol)
-
 changeChartSymbol(selectedSymbol);
-
 else
-
 changeChartSymbol("BTCUSDT");
 
 }
