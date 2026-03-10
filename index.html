@@ -189,22 +189,46 @@ let selectedSymbol=null;
 let currentTheme="light";
 let contextSymbol=null;
 let isMasterScanner=false;
+let wakeLock=null;
 
 let settings={ sound:true };
 
+async function enableWakeLock(){
+
+try{
+
+wakeLock = await navigator.wakeLock.request('screen');
+
+console.log("Wake Lock Active");
+
+wakeLock.addEventListener("release", () => {
+
+console.log("Wake Lock released");
+
+if(isMasterScanner){
+enableWakeLock();
+}
+
+});
+
+}catch(err){
+
+console.log("Wake Lock Failed", err);
+
+}
+
+}
 function saveList(){
 db.ref("scanner").set(highRvolSymbols);
 }
 
-function loadList(){
+async function loadList(){
 
-db.ref("scanner").once("value").then(snapshot=>{
+const snapshot = await db.ref("scanner").once("value");
 
 highRvolSymbols = snapshot.val() || {};
 
 render();
-
-});
 
 const s = localStorage.getItem("rvolSettings");
 if(s) settings = JSON.parse(s);
@@ -217,11 +241,21 @@ localStorage.setItem("rvolSettings", JSON.stringify(settings));
 
 async function checkScannerLock(){
 
-const snapshot = await db.ref("scannerLock").once("value");
+const lockRef = db.ref("scannerLock");
 
-if(!snapshot.exists()){
+const result = await lockRef.transaction(current => {
 
-await db.ref("scannerLock").set(true);
+if(current === null){
+
+return true;
+
+}
+
+return;
+
+});
+
+if(result.committed){
 
 isMasterScanner = true;
 
@@ -234,13 +268,12 @@ console.log("VIEWER MODE");
 }
 
 }
-
 document.getElementById("resetBtn").onclick=()=>{
 
 if(confirm("Reset Scanner ? All saved data will be cleared.")){
 
 db.ref("scanner").remove();
-
+db.ref("scannerLock").remove();
 location.reload();
 
 }
@@ -328,14 +361,14 @@ highRvolSymbols={
 
 }
 
-render();
-saveList();
-
 if(i+batchSize<symbols.length){
 await new Promise(r=>setTimeout(r,delay));
 }
 
 }
+
+render();
+saveList();
 
 document.getElementById("updateText").innerText=
 "Updated: "+new Date().toLocaleTimeString();
@@ -539,7 +572,11 @@ await fetchSymbols();
 initChart();
 
 if(isMasterScanner){
+
+enableWakeLock();
+
 scannerLoop();
+
 }
 
 }
@@ -561,4 +598,3 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
-
