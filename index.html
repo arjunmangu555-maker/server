@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RVOL Scanner</title>
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<style>
+body{margin:0;font-family:Arial;}
+.container{display:flex;height:100vh;}
+
+.left{
+    width:15%;
+    border-right:2px solid #008571;
+    overflow:auto;
+}
+
+.right{width:85%;}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+thead{
+    position:sticky;
+    top:0;
+    background:#008571;
+    color:white;
+    z-index:10;
+}
+
+th,td{
+    padding:6px;
+    border-bottom:1px solid #008571;
+    font-size:12px;
+}
+
+tbody tr:hover{
+background:#FCE3E3;
+cursor:pointer;
+}
+.selected{background:#ffe08a !important;}
+
+}
+
+.sectionHeader{
+    background:#f0f0f0;
+    font-weight:bold;
+    text-align:left;
+}
+
+.dividerRow td{
+    padding:0;
+    height:8px;
+    border-top:3px solid #008571;
+    background:none;
+}
+
+#status{
+    padding:6px;
+    font-size:12px;
+    background:#008571;
+    color:white;
+    display:flex;
+    align-items:center;
+    gap:5px;
+}
+
+#themeBtn,#settingsBtn{
+    font-size:10px;
+    padding:2px 6px;
+    cursor:pointer;
+    border:none;
+    border-radius:3px;
+}
+
+#contextMenu{
+    position:absolute;
+    display:none;
+    background:white;
+    border:1px solid #ccc;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2);
+    font-size:12px;
+    z-index:1000;
+}
+#contextMenu div{
+    padding:6px;
+    cursor:pointer;
+}
+#contextMenu div:hover{
+    background:#f0f0f0;
+}
+#deleteOption{color:red;}
+
+#settingsPopup{
+    position:absolute;
+    display:none;
+    background:white;
+    border:1px solid #ccc;
+    padding:8px;
+    font-size:12px;
+    z-index:2000;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="left">
+
+<div id="status">
+<span id="updateText">Starting...</span>
+<button id="themeBtn" onclick="toggleTheme()">Theme</button>
+<button id="settingsBtn">?</button>
+</div>
+
+<table>
+<thead>
+<tr><th>Symbol</th><th>RVOL</th></tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
+</div>
+
+<div class="right">
+<div id="chart" style="height:100%;width:100%;"></div>
+</div>
+</div>
+
+<div id="contextMenu">
+<div id="openTVOption">Open in TradingView</div>
+<div id="copyOption">Copy Symbol</div>
+<div id="deleteOption">Delete</div>
+</div>
+
+<div id="settingsPopup">
+
+<label>
+<input type="checkbox" id="soundToggle">
+Sound Alert
+</label>
+
+<br><br>
+
+<button id="resetBtn">Reset Scanner</button>
+
+</div>
+
+<audio id="alertSound">
+<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+</audio>
+
+<script>
+
+let symbols=[];
+let highRvolSymbols={};
+let widget=null;
+let selectedSymbol=null;
+let currentTheme="light";
+let contextSymbol=null;
+
+let settings={ sound:true };
+
+function saveList(){
+localStorage.setItem("RVOL_SCANNER_5M_200_LIST", JSON.stringify(highRvolSymbols));
+}
+
+function loadList(){
+const data = localStorage.getItem("RVOL_SCANNER_5M_200_LIST");
+if(data) highRvolSymbols = JSON.parse(data);
+
+const s = localStorage.getItem("rvolSettings");
+if(s) settings = JSON.parse(s);
+}
+
+function saveSettings(){
+localStorage.setItem("rvolSettings", JSON.stringify(settings));
+}
+
+document.getElementById("resetBtn").onclick=()=>{
+
+if(confirm("Reset Scanner ? All saved data will be cleared.")){
+
+localStorage.removeItem("RVOL_SCANNER_5M_200_LIST");
+
+location.reload();
+
+}
+
+};
+
+async function fetchSymbols(){
+
+const res=await fetch("https://fapi.binance.com/fapi/v1/exchangeInfo");
+const data=await res.json();
+
+symbols=data.symbols
+.filter(s=>s.contractType==="PERPETUAL" && s.quoteAsset==="USDT")
+.map(s=>s.symbol)
+
+}
+
+async function getRVOLData(symbol){
+    try{
+
+        const res=await fetch(
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`);
+
+        const data=await res.json();
+        if(!Array.isArray(data)) return null;
+
+        let vols=data.map(x=>parseFloat(x[5]));
+
+        // 0-199 = average (200 candles)
+        let avg=vols.slice(0,200).reduce((a,b)=>a+b,0)/200;
+
+        // 200-204 = last 5 CLOSED candles
+        let last5=vols.slice(200,205);
+
+        let rvols=last5.map(v=>v/avg);
+
+        let condition=rvols.every(v=>v>=3);
+
+        if(condition){
+            return rvols[4];
+        }
+
+        return null;
+
+    }catch{
+        return null;
+    }
+}
+
+async function scan(){
+
+    document.getElementById("updateText").innerText="Scanning...";
+
+    const batchSize=100;
+    const delay=25000;
+
+    for(let i=0;i<symbols.length;i+=batchSize){
+
+        let batch=symbols.slice(i,i+batchSize);
+
+        let promises=batch.map(s=>getRVOLData(s).then(r=>({s,r})));
+
+        let results=await Promise.all(promises);
+
+        for(let item of results){
+
+            if(item.r){
+
+                if(!highRvolSymbols[item.s]){
+
+                    if(settings.sound){
+                        document.getElementById("alertSound").play();
+                    }
+
+                    // NEW SYMBOL TOP
+                    highRvolSymbols={
+                        [item.s]:item.r,
+                        ...highRvolSymbols
+                    };
+
+                }
+
+            }
+
+        }
+
+        render();
+        saveList();
+
+        if(i+batchSize<symbols.length){
+            await new Promise(r=>setTimeout(r,delay));
+        }
+    }
+
+    document.getElementById("updateText").innerText=
+    "Updated: "+new Date().toLocaleTimeString();
+}
+
+function render(){
+    const tbody=document.getElementById("body");
+    tbody.innerHTML="";
+
+    Object.keys(highRvolSymbols)
+    .forEach(s=>{
+        createRow(s);
+    });
+}
+
+function createRow(s){
+
+let row=document.createElement("tr");
+
+if(selectedSymbol===s)
+row.classList.add("selected");	
+
+row.innerHTML=`
+<td>${s}</td>
+<td>${highRvolSymbols[s]?.toFixed(2)}</td>
+`;
+
+row.onclick=()=>{
+selectedSymbol=s;
+changeChartSymbol(s);
+render();
+};
+
+row.oncontextmenu=(e)=>{
+e.preventDefault();
+contextSymbol=s;
+
+const menu=document.getElementById("contextMenu");
+
+menu.style.display="block";
+menu.style.left=e.pageX+"px";
+menu.style.top=e.pageY+"px";
+};
+
+document.getElementById("body").appendChild(row);
+
+}
+
+document.getElementById("openTVOption").onclick=()=>{
+
+if(contextSymbol){
+
+const url="https://in.tradingview.com/chart/?symbol=BINANCE:"+contextSymbol+".P";
+
+window.open(url,"_blank");
+
+}
+
+hideMenu();
+
+};
+
+document.getElementById("copyOption").onclick=()=>{
+
+if(contextSymbol){
+
+navigator.clipboard.writeText(contextSymbol);
+
+}
+
+hideMenu();
+
+};
+
+document.getElementById("deleteOption").onclick=()=>{
+
+if(contextSymbol){
+
+if(confirm("Delete "+contextSymbol+" ?")){
+
+delete highRvolSymbols[contextSymbol];
+
+saveList();
+
+render();
+
+}
+
+}
+
+hideMenu();
+
+};
+
+function hideMenu(){
+
+document.getElementById("contextMenu").style.display="none";
+
+}
+
+document.addEventListener("click",hideMenu);
+
+document.getElementById("settingsBtn").onclick=(e)=>{
+
+const pop=document.getElementById("settingsPopup");
+
+pop.style.display="block";
+pop.style.left=e.pageX+"px";
+pop.style.top=e.pageY+"px";
+
+};
+
+document.getElementById("soundToggle").onchange=(e)=>{
+
+settings.sound=e.target.checked;
+
+saveSettings();
+
+};
+
+document.addEventListener("click",(e)=>{
+
+if(!e.target.closest("#settingsBtn"))
+
+document.getElementById("settingsPopup").style.display="none";
+
+});
+
+function initChart(){
+
+widget=new TradingView.widget({
+container_id:"chart",
+symbol:"BINANCE:BTCUSDT.P",
+interval:"5",
+autosize:true,
+theme:currentTheme,
+studies:["Volume@tv-basicstudies"],
+studies_overrides:{
+"volume.volume.transparency":0
+}
+
+});
+
+}
+
+function changeChartSymbol(symbol){
+
+document.getElementById("chart").innerHTML="";
+
+widget=new TradingView.widget({
+
+container_id:"chart",
+symbol:"BINANCE:"+symbol+".P",
+interval:"5",
+autosize:true,
+theme:currentTheme,
+studies:["Volume@tv-basicstudies"],
+studies_overrides:{
+"volume.volume.transparency":0
+}
+
+});
+
+}
+
+function toggleTheme(){
+
+currentTheme=currentTheme==="light"?"dark":"light";
+
+if(selectedSymbol)
+
+changeChartSymbol(selectedSymbol);
+
+else
+
+changeChartSymbol("BTCUSDT");
+
+}
+
+async function scannerLoop(){
+
+while(true){
+
+await scan();
+
+await new Promise(r=>setTimeout(r,300000));
+
+}
+
+}
+
+async function init(){
+
+loadList();
+
+document.getElementById("soundToggle").checked=settings.sound;
+
+render();
+
+await fetchSymbols();
+
+initChart();
+
+scannerLoop();
+
+}
+
+init();
+
+</script>
+
+</body>
+</html>
