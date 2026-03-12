@@ -402,13 +402,19 @@ render();
 }
 
 function render(){
+
 const tbody=document.getElementById("body");
 tbody.innerHTML="";
 
-Object.keys(highRvolSymbols)
-.forEach(s=>{
+let entries = Object.entries(highRvolSymbols);
+
+// newest first (latest date top)
+entries.sort((a,b)=> b[1] - a[1]);
+
+entries.forEach(([s])=>{
 createRow(s);
 });
+
 }
 
 function createRow(s){
@@ -684,4 +690,5 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
+
 
