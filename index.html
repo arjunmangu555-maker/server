@@ -241,7 +241,7 @@ for(let s in newData){
 
 if(!highRvolSymbols[s]){
 
-if(settings.sound){
+if(settings.sound && !isMasterScanner){
 document.getElementById("alertSound").play();
 }
 
@@ -715,6 +715,7 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
+
 
 
 
