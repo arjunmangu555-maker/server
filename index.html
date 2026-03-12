@@ -125,7 +125,10 @@ z-index:2000;
 
 <table>
 <thead>
-<tr><th>Symbol</th><th>RVOL</th></tr>
+<tr>
+<th onclick="sortList('symbol')">Symbol</th>
+<th onclick="sortList('time')">Date Time</th>
+</tr>
 </thead>
 <tbody id="body"></tbody>
 </table>
@@ -186,6 +189,7 @@ let symbols=[];
 let highRvolSymbols={};
 let widget=null;
 let selectedSymbol=null;
+let selectedIndex = -1;
 let currentTheme="light";
 let contextSymbol=null;
 let isMasterScanner=false;
@@ -351,7 +355,7 @@ document.getElementById("alertSound").play();
 }
 
 highRvolSymbols={
-[item.s]:item.r,
+[item.s]:Date.now(),
 ...highRvolSymbols
 };
 
@@ -375,6 +379,28 @@ document.getElementById("updateText").innerText=
 
 }
 
+let sortDirection = 1;
+
+function sortList(type){
+
+let entries = Object.entries(highRvolSymbols);
+
+if(type==="symbol"){
+entries.sort((a,b)=>a[0].localeCompare(b[0]) * sortDirection);
+}
+
+if(type==="time"){
+entries.sort((a,b)=>(a[1]-b[1]) * sortDirection);
+}
+
+sortDirection *= -1;
+
+highRvolSymbols = Object.fromEntries(entries);
+
+render();
+
+}
+
 function render(){
 const tbody=document.getElementById("body");
 tbody.innerHTML="";
@@ -394,7 +420,7 @@ row.classList.add("selected");
 
 row.innerHTML=`
 <td>${s}</td>
-<td>${highRvolSymbols[s]?.toFixed(2)}</td>
+<td>${new Date(highRvolSymbols[s]).toLocaleString()}</td>
 `;
 
 row.onclick=()=>{
@@ -417,6 +443,38 @@ menu.style.top=e.pageY+"px";
 document.getElementById("body").appendChild(row);
 
 }
+
+document.addEventListener("keydown",(e)=>{
+
+let keys = Object.keys(highRvolSymbols);
+
+if(e.key==="ArrowDown"){
+
+selectedIndex++;
+
+if(selectedIndex >= keys.length)
+selectedIndex = keys.length-1;
+
+selectedSymbol = keys[selectedIndex];
+changeChartSymbol(selectedSymbol);
+render();
+
+}
+
+if(e.key==="ArrowUp"){
+
+selectedIndex--;
+
+if(selectedIndex < 0)
+selectedIndex = 0;
+
+selectedSymbol = keys[selectedIndex];
+changeChartSymbol(selectedSymbol);
+render();
+
+}
+
+});
 
 document.getElementById("openTVOption").onclick=()=>{
 
@@ -626,5 +684,4 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
-
 
