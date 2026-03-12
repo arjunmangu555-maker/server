@@ -228,11 +228,36 @@ db.ref("scanner").set(highRvolSymbols);
 
 async function loadList(){
 
-const snapshot = await db.ref("scanner").once("value");
+let firstLoad = true;
 
-highRvolSymbols = snapshot.val() || {};
+db.ref("scanner").on("value",(snapshot)=>{
+
+let newData = snapshot.val() || {};
+
+if(!firstLoad){
+
+// detect new symbols
+for(let s in newData){
+
+if(!highRvolSymbols[s]){
+
+if(settings.sound){
+document.getElementById("alertSound").play();
+}
+
+}
+
+}
+
+}
+
+highRvolSymbols = newData;
 
 render();
+
+firstLoad = false;
+
+});
 
 const s = localStorage.getItem("rvolSettings");
 if(s) settings = JSON.parse(s);
@@ -690,5 +715,6 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
+
 
 
