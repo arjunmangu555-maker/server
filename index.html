@@ -256,7 +256,9 @@ for(let s in newData){
 if(!highRvolSymbols[s]){
 
 if(settings.sound && !isMasterScanner){
-document.getElementById("alertSound").play();
+const sound=document.getElementById("alertSound");
+sound.currentTime=0;
+sound.play();
 }
 
 }
@@ -338,11 +340,25 @@ s.status==="TRADING"
 
 }
 
+async function fetchWithTimeout(url, timeout=10000){
+
+return Promise.race([
+
+fetch(url),
+
+new Promise((_,reject)=>
+setTimeout(()=>reject(new Error("timeout")),timeout)
+)
+
+]);
+
+}
+
 async function getRVOLData(symbol){
 try{
 
-const res=await fetch(
-`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`);
+const res=await fetchWithTimeout(
+`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`,10000);
 
 const data=await res.json();
 if(!Array.isArray(data)) return null;
@@ -393,7 +409,7 @@ if(item.r){
 if(!highRvolSymbols[item.s]){
 
 if(settings.sound){
-document.getElementById("alertSound").play();
+	
 }
 
 highRvolSymbols={
@@ -636,6 +652,10 @@ studies_overrides:{
 
 function changeChartSymbol(symbol){
 
+if(widget){
+widget.remove();
+}
+
 document.getElementById("chart").innerHTML="";
 
 widget=new TradingView.widget({
@@ -683,14 +703,21 @@ async function scannerLoop(){
 
 while(true){
 
+try{
+
 await scan();
+
+}catch(e){
+
+console.log("SCAN ERROR:",e);
+
+}
 
 await new Promise(r=>setTimeout(r,300000));
 
 }
 
 }
-
 async function init(){
 
 await loadList();
@@ -716,6 +743,14 @@ scannerLoop();
 }
 
 init();
+
+/* TAB ACTIVE KEEP HACK */
+
+setInterval(()=>{
+
+console.log("Scanner Alive", new Date().toLocaleTimeString());
+
+},60000);
 
 window.addEventListener("beforeunload",()=>{
 
