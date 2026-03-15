@@ -291,9 +291,7 @@ const lockRef = db.ref("scannerLock");
 const result = await lockRef.transaction(current => {
 
 if(current === null){
-
 return true;
-
 }
 
 return;
@@ -306,13 +304,18 @@ isMasterScanner = true;
 
 console.log("MASTER SCANNER");
 
+document.getElementById("updateText").innerText = "Master Scanner";
+
 }else{
 
 console.log("VIEWER MODE");
 
+document.getElementById("updateText").innerText = "Viewer Mode";
+
 }
 
 }
+	
 document.getElementById("resetBtn").onclick=()=>{
 
 if(confirm("Reset Scanner ? All saved data will be cleared.")){
