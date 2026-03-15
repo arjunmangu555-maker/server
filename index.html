@@ -363,7 +363,7 @@ const res=await fetchWithTimeout(
 const data=await res.json();
 if(!Array.isArray(data)) return null;
 
-let vols=data.map(x=>parseFloat(x[5]));
+let vols=data.slice(0,205).map(x=>parseFloat(x[5]));
 
 let avg=vols.slice(0,200).reduce((a,b)=>a+b,0)/200;
 
@@ -371,7 +371,7 @@ let last5=vols.slice(200,205);
 
 let rvols=last5.map(v=>v/avg);
 
-let condition=rvols.every(v=>v>=3);
+let condition=rvols.every(v=>v>=5);
 
 if(condition){
 return rvols[4];
