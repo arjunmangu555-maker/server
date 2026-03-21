@@ -10,16 +10,20 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;}
+body{
+margin:0;
+font-family:Arial;
+overflow:hidden;
+}
 .container{display:flex;height:100vh;}
 
 .left{
-width:12%;
-border-right:2px solid #008571;
+width:13%;
+border-right:2px solid #0A374A;
 overflow:auto;
 }
 
-.right{width:88%;}
+.right{width:87%;}
 
 table{
 width:100%;
@@ -29,23 +33,26 @@ border-collapse:collapse;
 thead{
 position:sticky;
 top:0;
-background:#008571;
+background:#0A374A;
 color:white;
 z-index:10;
 }
 
 th,td{
 padding:8px;
-border-bottom:1px solid #008571;
+border-bottom:1px solid #0A374A;
 font-size:12px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 tbody tr:hover{
-background:#FCE3E3;
+background:#BCF2F7;
 cursor:pointer;
 }
 
-.selected{background:#ffe08a !important;}
+.selected{background:#A3E2FF !important;}
 
 .sectionHeader{
 background:#f0f0f0;
@@ -56,22 +63,22 @@ text-align:left;
 .dividerRow td{
 padding:0;
 height:8px;
-border-top:3px solid #008571;
+border-top:3px solid #0A374A;
 background:none;
 }
 
 #status{
 padding:6px;
-font-size:10px;
-background:#008571;
+font-size:12px;
+background:#0A374A;
 color:white;
 display:flex;
 align-items:center;
-gap:5px;
+gap:7px;
 }
 
 #themeBtn,#settingsBtn{
-font-size:12px;
+font-size:14px;
 padding:2px 6px;
 cursor:pointer;
 border:none;
@@ -82,10 +89,10 @@ border-radius:3px;
 position:absolute;
 display:none;
 background:#f9fbfb;
-border:1px solid #008571;
+border:1px solid #0A374A;
 border-radius:6px;
 box-shadow:0 4px 10px rgba(0,0,0,0.2);
-font-size:14px;
+font-size:13px;
 min-width:180px;
 overflow:hidden;
 z-index:1000;
@@ -103,7 +110,7 @@ border-bottom:1px solid #d2e6e3;
 }
 
 #contextMenu div:hover{
-background:#e9f5f3;
+background:#78D9FF;
 }
 
 #deleteOption{
@@ -113,15 +120,86 @@ font-weight:bold;
   
 #deleteOption{color:red;}
 
+/* SETTINGS MODAL DESIGN */
+
 #settingsPopup{
-position:absolute;
+position:fixed;
 display:none;
-background:white;
-border:1px solid #ccc;
-padding:8px;
-font-size:12px;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#ffffff;
+border-radius:8px;
+box-shadow:0 6px 20px rgba(0,0,0,0.3);
+width:300px;
+overflow:hidden;
 z-index:2000;
 }
+
+/* Header */
+.settingsHeader{
+background:#0A374A;
+color:white;
+padding:12px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:16px;
+}
+
+/* Body */
+.settingsBody{
+padding:15px;
+background:#f3f3f3;
+}
+
+.settingRow{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+font-size:14px;
+}
+
+.settingRow input[type="number"]{
+width:80px;
+padding:5px;
+font-size:14px;
+}
+
+.resetBtn{
+padding:6px 12px;
+border:1px solid black;
+background:white;
+cursor:pointer;
+}
+
+/* Footer */
+.settingsFooter{
+display:flex;
+justify-content:space-between;
+padding:15px;
+}
+
+.settingsFooter button{
+padding:10px 20px;
+border-radius:6px;
+cursor:pointer;
+border:none;
+font-size:14px;
+}
+
+#cancelSettings{
+background:white;
+border:2px solid #0A374A;
+color:#0A374A;
+}
+
+#saveSettingsBtn{
+background:#0A374A;
+color:white;
+}
+
 </style>
 </head>
 
@@ -133,15 +211,16 @@ z-index:2000;
 
 <div id="status">
 <span id="updateText">Starting...</span>
-<button id="themeBtn" onclick="toggleTheme()">Theme</button>
-<button id="settingsBtn">?</button>
+<button id="themeBtn" onclick="toggleTheme()">☀️</button>
+<button id="settingsBtn">⚙️</button>
 </div>
 
 <table>
 <thead>
 <tr>
 <th onclick="sortList('symbol')">Symbol</th>
-<th onclick="sortList('time')">Date Time</th>
+<th onclick="sortList('time')">Time</th>
+<th onclick="sortList('rvol')">RVOL</th>
 </tr>
 </thead>
 <tbody id="body"></tbody>
@@ -163,19 +242,38 @@ z-index:2000;
 
 <div id="settingsPopup">
 
-<label>
+<div class="settingsHeader">
+<span>Settings</span>
+<span id="closeSettings" style="cursor:pointer;">✖</span>
+</div>
+
+<div class="settingsBody">
+
+<div class="settingRow">
+<label>Min. Relative Volume</label>
+<input type="number" id="minRvolInput">
+</div>
+
+<div class="settingRow">
+<label>Sound Alert</label>
 <input type="checkbox" id="soundToggle">
-Sound Alert
-</label>
+</div>
 
-<br><br>
+<div class="settingRow">
+<button id="resetBtn" class="resetBtn">RESET (Clear All)</button>
+</div>
 
-<button id="resetBtn">Reset Scanner</button>
+</div>
+
+<div class="settingsFooter">
+<button id="cancelSettings">Cancel</button>
+<button id="saveSettingsBtn">Save</button>
+</div>
 
 </div>
 
 <audio id="alertSound">
-<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
+<source src="https://actions.google.com/sounds/v1/alarms/medium_bell_ringing_near.ogg">
 </audio>
 
 <script>
@@ -204,12 +302,14 @@ let highRvolSymbols={};
 let widget=null;
 let selectedSymbol=null;
 let selectedIndex = -1;
+let sortedKeys = [];
 let currentTheme="light";
 let contextSymbol=null;
 let isMasterScanner=false;
 let wakeLock=null;
 
-let settings={ sound:true };
+let settings={ sound:true, minRvol:15 };
+let lastSoundTime = 0;
 
 async function enableWakeLock(){
 
@@ -250,15 +350,21 @@ let newData = snapshot.val() || {};
 
 if(!firstLoad){
 
-// detect new symbols
 for(let s in newData){
 
 if(!highRvolSymbols[s]){
 
-if(settings.sound && !isMasterScanner){
+// 🔔 SOUND FOR VIEWER + MASTER BOTH
+if(settings.sound){
+let now = Date.now();
+
+if(now - lastSoundTime > 2000){ // 2 sec gap
 const sound=document.getElementById("alertSound");
 sound.currentTime=0;
 sound.play();
+
+lastSoundTime = now;
+}
 }
 
 }
@@ -267,6 +373,11 @@ sound.play();
 
 }
 
+for(let k in newData){
+if(typeof newData[k] === "number"){
+newData[k] = { time: newData[k], rvol: 0 };
+}
+}
 highRvolSymbols = newData;
 
 render();
@@ -284,14 +395,27 @@ function saveSettings(){
 localStorage.setItem("rvolSettings", JSON.stringify(settings));
 }
 
+function formatTime(ts){
+const d = new Date(ts);
+
+const day = String(d.getDate()).padStart(2,'0');
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const month = months[d.getMonth()];
+
+const hours = String(d.getHours()).padStart(2,'0');
+const mins = String(d.getMinutes()).padStart(2,'0');
+
+return `${day}-${month}, ${hours}:${mins}`;
+}
+
 async function checkScannerLock(){
 
 const lockRef = db.ref("scannerLock");
 
 const result = await lockRef.transaction(current => {
 
-if(current === null){
-return true;
+if(current === null || Date.now() - current > 900000){
+return Date.now();
 }
 
 return;
@@ -322,6 +446,7 @@ if(confirm("Reset Scanner ? All saved data will be cleared.")){
 
 db.ref("scanner").remove();
 db.ref("scannerLock").remove();
+localStorage.removeItem("rvolSettings");
 location.reload();
 
 }
@@ -361,23 +486,34 @@ async function getRVOLData(symbol){
 try{
 
 const res=await fetchWithTimeout(
-`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=206`,10000);
+`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=15m&limit=202`,10000);
 
 const data=await res.json();
 if(!Array.isArray(data)) return null;
 
-let vols=data.slice(0,205).map(x=>parseFloat(x[5]));
+// 200 candles avg
+let vols=data.slice(0,200).map(x=>parseFloat(x[5]));
+let avg=vols.reduce((a,b)=>a+b,0)/200;
 
-let avg=vols.slice(0,200).reduce((a,b)=>a+b,0)/200;
+// last 2 candles
+let closedVol=parseFloat(data[200][5]);
+let liveVol=parseFloat(data[201][5]);
 
-let last5=vols.slice(200,205);
+let rvol_closed=closedVol/avg;
+let rvol_live=liveVol/avg;
 
-let rvols=last5.map(v=>v/avg);
+let minR = settings.minRvol || 15;
 
-let condition=rvols.every(v=>v>=5);
+// OR condition
+if(rvol_closed >= minR || rvol_live >= minR){
 
-if(condition){
-return rvols[4];
+// return jo pass kare
+if(rvol_live >= minR){
+return Math.floor(rvol_live);
+}else{
+return Math.floor(rvol_closed);
+}
+
 }
 
 return null;
@@ -391,8 +527,8 @@ async function scan(){
 
 document.getElementById("updateText").innerText="Scanning...";
 
-const batchSize=100;
-const delay=25000;
+const batchSize=50;
+const delay=10000;
 
 for(let i=0;i<symbols.length;i+=batchSize){
 
@@ -411,14 +547,34 @@ if(item.r){
 
 if(!highRvolSymbols[item.s]){
 
-if(settings.sound){
-	
+// 🔔 SOUND FOR MASTER
+if(settings.sound && isMasterScanner){
+
+let now = Date.now();
+
+if(now - lastSoundTime > 2000){
+const sound=document.getElementById("alertSound");
+sound.currentTime=0;
+sound.play();
+
+lastSoundTime = now;
 }
 
+}
+
+
+// 📊 ADD SYMBOL
 highRvolSymbols={
-[item.s]:Date.now(),
+[item.s]:{
+time:Date.now(),
+rvol: item.r
+},
 ...highRvolSymbols
 };
+
+// ⚡ REAL-TIME UPDATE
+saveList();
+render();
 
 }
 
@@ -432,17 +588,18 @@ await new Promise(r=>setTimeout(r,delay));
 
 }
 
-render();
-saveList();
-
 document.getElementById("updateText").innerText=
-"Updated: "+new Date().toLocaleTimeString();
+"Done: "+new Date().toLocaleTimeString();
 
 }
 
-let sortDirection = 1;
+let sortDirection = -1; // newest first default
+let currentSort = "time";
+
 
 function sortList(type){
+
+currentSort = type;
 
 let entries = Object.entries(highRvolSymbols);
 
@@ -451,7 +608,11 @@ entries.sort((a,b)=>a[0].localeCompare(b[0]) * sortDirection);
 }
 
 if(type==="time"){
-entries.sort((a,b)=>(a[1]-b[1]) * sortDirection);
+entries.sort((a,b)=>(a[1].time - b[1].time) * sortDirection);
+}
+
+if(type==="rvol"){
+entries.sort((a,b)=>(a[1].rvol - b[1].rvol) * sortDirection);
 }
 
 sortDirection *= -1;
@@ -461,7 +622,6 @@ highRvolSymbols = Object.fromEntries(entries);
 render();
 
 }
-
 function render(){
 
 const tbody=document.getElementById("body");
@@ -470,7 +630,20 @@ tbody.innerHTML="";
 let entries = Object.entries(highRvolSymbols);
 
 // newest first (latest date top)
-entries.sort((a,b)=> b[1] - a[1]);
+if(currentSort==="symbol"){
+entries.sort((a,b)=>a[0].localeCompare(b[0]) * sortDirection);
+}
+
+if(currentSort==="time"){
+entries.sort((a,b)=>(a[1].time - b[1].time) * sortDirection);
+}
+
+if(currentSort==="rvol"){
+entries.sort((a,b)=>(a[1].rvol - b[1].rvol) * sortDirection);
+}
+
+sortedKeys = entries.map(e => e[0]);
+selectedIndex = sortedKeys.indexOf(selectedSymbol);
 
 entries.forEach(([s])=>{
 createRow(s);
@@ -487,7 +660,8 @@ row.classList.add("selected");
 
 row.innerHTML=`
 <td>${s}</td>
-<td>${new Date(highRvolSymbols[s]).toLocaleString()}</td>
+<td>${formatTime(highRvolSymbols[s].time)}</td>
+<td>${highRvolSymbols[s].rvol}</td>
 `;
 
 row.onclick=()=>{
@@ -498,6 +672,10 @@ render();
 
 row.oncontextmenu=(e)=>{
 e.preventDefault();
+
+// पहले hide करो (duplicate open fix)
+hideMenu();
+
 contextSymbol=s;
 
 const menu=document.getElementById("contextMenu");
@@ -513,7 +691,7 @@ document.getElementById("body").appendChild(row);
 
 document.addEventListener("keydown",(e)=>{
 
-let keys = Object.keys(highRvolSymbols);
+let keys = sortedKeys;
 
 if(e.key==="ArrowDown"){
 
@@ -595,29 +773,18 @@ document.getElementById("contextMenu").style.display="none";
 
 }
 
-document.addEventListener("click",hideMenu);
-
-document.getElementById("settingsBtn").onclick=(e)=>{
-
-const pop=document.getElementById("settingsPopup");
-
-pop.style.display="block";
-pop.style.left=e.pageX+"px";
-pop.style.top=e.pageY+"px";
-
-};
-
-document.getElementById("soundToggle").onchange=(e)=>{
-
-settings.sound=e.target.checked;
-
-saveSettings();
-
-};
-
 document.addEventListener("click",(e)=>{
 
-if(!e.target.closest("#settingsBtn"))
+// अगर click context menu के अंदर नहीं है
+if(!e.target.closest("#contextMenu")){
+hideMenu();
+}
+
+});
+
+
+document.addEventListener("click",(e)=>{
+if(!e.target.closest("#settingsPopup") && !e.target.closest("#settingsBtn"))
 document.getElementById("settingsPopup").style.display="none";
 
 });
@@ -627,7 +794,7 @@ function initChart(){
 widget=new TradingView.widget({
 container_id:"chart",
 symbol:"BINANCE:BTCUSDT.P",
-interval:"5",
+interval:"15",
 autosize:true,
 theme:currentTheme,
 style:"1",
@@ -656,7 +823,7 @@ studies_overrides:{
 function changeChartSymbol(symbol){
 
 if(widget){
-widget.remove();
+try{ widget.remove(); } catch(e){}
 }
 
 document.getElementById("chart").innerHTML="";
@@ -665,7 +832,7 @@ widget=new TradingView.widget({
 
 container_id:"chart",
 symbol:"BINANCE:"+symbol+".P",
-interval:"5",
+interval:"15",
 autosize:true,
 theme:currentTheme,
 style:"1",
@@ -727,7 +894,9 @@ await loadList();
 
 await checkScannerLock();
 
-document.getElementById("soundToggle").checked=settings.sound;
+document.getElementById("soundToggle").checked = settings.sound;
+
+document.getElementById("minRvolInput").value=settings.minRvol;
 
 render();
 
@@ -746,6 +915,38 @@ scannerLoop();
 }
 
 init();
+
+// ===== SETTINGS MODAL LOGIC =====
+
+// OPEN
+document.getElementById("settingsBtn").onclick=()=>{
+const pop=document.getElementById("settingsPopup");
+
+pop.style.display="block";
+
+document.getElementById("minRvolInput").value=settings.minRvol;
+document.getElementById("soundToggle").checked=settings.sound;
+};
+
+// SAVE
+document.getElementById("saveSettingsBtn").onclick=()=>{
+settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").value) || 15);
+settings.sound = document.getElementById("soundToggle").checked;
+
+saveSettings();
+document.getElementById("settingsPopup").style.display="none";
+};
+
+// CANCEL
+document.getElementById("cancelSettings").onclick=()=>{
+document.getElementById("settingsPopup").style.display="none";
+};
+
+// CLOSE (X)
+document.getElementById("closeSettings").onclick=()=>{
+document.getElementById("settingsPopup").style.display="none";
+};
+
 
 /* TAB ACTIVE KEEP HACK */
 
@@ -770,14 +971,5 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
 
 
