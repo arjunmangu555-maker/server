@@ -52,15 +52,19 @@ white-space:nowrap;
 /* REMOVE ये 2 line */
 overflow:visible;
 text-overflow:clip;
-}4
+}
 
 
+/* Hover = mouse जिस row पर है */
 tbody tr:hover{
-background:#BCF2F7;
+background:#B3DAFF;
 cursor:pointer;
 }
 
-.selected{background:#A3E2FF !important;}
+/* Selected = click के बाद permanent */
+.selected{
+background:#B3DAFF;
+}
 
 .sectionHeader{
 background:#f0f0f0;
@@ -568,41 +572,38 @@ for(let item of results){
 
 if(item.r){
 
-if(!highRvolSymbols[item.s]){
+let isNew = !highRvolSymbols[item.s];
 
-// 🔔 SOUND FOR MASTER
-if(settings.sound && isMasterScanner){
+// 🔔 sound only if new symbol
+if(isNew && settings.sound && isMasterScanner){
 
 let now = Date.now();
-
 if(now - lastSoundTime > 2000){
 const sound=document.getElementById("alertSound");
 sound.currentTime=0;
 sound.play();
-
 lastSoundTime = now;
 }
 
 }
 
-
-// 📊 ADD SYMBOL
-highRvolSymbols={
+// 📊 update or add symbol
+highRvolSymbols = {
 [item.s]:{
 time:Date.now(),
 rvol: item.r
 },
-...highRvolSymbols
+...Object.fromEntries(
+Object.entries(highRvolSymbols)
+.filter(([k]) => k !== item.s)
+)
 };
 
-// ⚡ REAL-TIME UPDATE
+// ⚡ save + render only if new OR updated
 saveList();
 render();
 
 }
-
-}
-
 }
 
 if(i+batchSize<symbols.length){
@@ -796,13 +797,9 @@ document.getElementById("contextMenu").style.display="none";
 
 }
 
-document.addEventListener("click",(e)=>{
-
-// अगर click context menu के अंदर नहीं है
-if(!e.target.closest("#contextMenu")){
+// iframe click detect करने के लिए
+window.addEventListener("blur", ()=>{
 hideMenu();
-}
-
 });
 
 
