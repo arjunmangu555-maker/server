@@ -41,13 +41,13 @@ background:#0A374A;
 transition:all 0.2s;
 }
 
-/* âœ¨ Hover glow */
+/* ✨ Hover glow */
 #divider:hover{
 background:#1E90FF;
 box-shadow:0 0 6px #1E90FF;
 }
 
-/* ðŸ”¥ Active drag glow */
+/* 🔥 Active drag glow */
 #divider.active{
 background:#00CFFF;
 box-shadow:0 0 10px #00CFFF;
@@ -265,8 +265,8 @@ position:relative;
 
 <div id="status">
 <span id="updateText">Starting...</span>
-<button id="themeBtn" onclick="toggleTheme()">â˜€ï¸</button>
-<button id="settingsBtn">âš™ï¸</button>
+<button id="themeBtn" onclick="toggleTheme()">☀️</button>
+<button id="settingsBtn">⚙️</button>
 </div>
 
 <div class="tableWrapper">
@@ -296,17 +296,17 @@ position:relative;
 </div>
 
 <div id="contextMenu">
-<div id="openTVOption">ðŸ“„ Open TradingView</div>
-<div id="copyOption">ðŸ“‹ Copy Symbol</div>
-<div id="favOption">â­ Favorite Symbol</div>
-<div id="deleteOption">âŒ Delete Symbol</div>
+<div id="openTVOption">📄 Open TradingView</div>
+<div id="copyOption">📋 Copy Symbol</div>
+<div id="favOption">⭐ Favorite Symbol</div>
+<div id="deleteOption">❌ Delete Symbol</div>
 </div>
 
 <div id="settingsPopup">
 
 <div class="settingsHeader">
 <span>Settings</span>
-<span id="closeSettings" style="cursor:pointer;">âœ–</span>
+<span id="closeSettings" style="cursor:pointer;">✖</span>
 </div>
 
 <div class="settingsBody">
@@ -408,7 +408,7 @@ db.ref("scanner").set(highRvolSymbols);
 
 async function loadList(){
 
-// â­ LOAD FAVORITES FROM FIREBASE
+// ⭐ LOAD FAVORITES FROM FIREBASE
 db.ref("favorites").on("value",(snap)=>{
 favorites = snap.val() || [];
 render();
@@ -426,7 +426,7 @@ for(let s in newData){
 
 if(!highRvolSymbols[s]){
 
-// ðŸ”” SOUND FOR VIEWER + MASTER BOTH
+// 🔔 SOUND FOR VIEWER + MASTER BOTH
 if(settings.sound){
 let now = Date.now();
 
@@ -620,7 +620,7 @@ if(item.r){
 
 let isNew = !highRvolSymbols[item.s];
 
-// ðŸ”” sound only if new symbol
+// 🔔 sound only if new symbol
 if(isNew && settings.sound && isMasterScanner){
 
 let now = Date.now();
@@ -633,7 +633,7 @@ lastSoundTime = now;
 
 }
 
-// ðŸ“Š update or add symbol
+// 📊 update or add symbol
 highRvolSymbols = {
 [item.s]:{
 time:Date.now(),
@@ -645,7 +645,7 @@ Object.entries(highRvolSymbols)
 )
 };
 
-// âš¡ save + render only if new OR updated
+// ⚡ save + render only if new OR updated
 saveList();
 render();
 
@@ -718,7 +718,7 @@ selectedIndex = sortedKeys.indexOf(selectedSymbol);
 // ===== FAVORITES SECTION =====
 if(favorites.length){
 
-createSection("â˜… Favorites");
+createSection("★ Favorites");
 
 entries
 .filter(([s]) => favorites.includes(s))
@@ -739,7 +739,7 @@ function createRow(s){
 
 let row=document.createElement("tr");
 
-// â­ Favorite row highlight
+// ⭐ Favorite row highlight
 if(favorites.includes(s)){
 row.classList.add("favoriteRow");
 }
@@ -771,11 +771,11 @@ contextSymbol = s;
 
 const menu = document.getElementById("contextMenu");
 
-// à¤ªà¤¹à¤²à¥‡ visible à¤•à¤°à¥‹ à¤¤à¤¾à¤•à¤¿ size à¤®à¤¿à¤² à¤¸à¤•à¥‡
+// पहले visible करो ताकि size मिल सके
 menu.style.display = "block";
 menu.style.visibility = "hidden";
 
-// menu size à¤²à¥‹
+// menu size लो
 const menuWidth = menu.offsetWidth;
 const menuHeight = menu.offsetHeight;
 
@@ -787,22 +787,22 @@ const screenHeight = window.innerHeight;
 let left = e.clientX;
 let top = e.clientY;
 
-// ðŸ‘‰ RIGHT overflow check
+// 👉 RIGHT overflow check
 if(left + menuWidth > screenWidth){
 left = screenWidth - menuWidth - 5;
 }
 
-// ðŸ‘‰ BOTTOM overflow check
+// 👉 BOTTOM overflow check
 if(top + menuHeight > screenHeight){
 top = screenHeight - menuHeight - 5;
 }
 
-// ðŸ‘‰ LEFT overflow safety
+// 👉 LEFT overflow safety
 if(left < 5){
 left = 5;
 }
 
-// ðŸ‘‰ TOP overflow safety
+// 👉 TOP overflow safety
 if(top < 5){
 top = 5;
 }
@@ -811,7 +811,7 @@ top = 5;
 menu.style.left = left + "px";
 menu.style.top = top + "px";
 
-// à¤…à¤¬ show à¤•à¤°à¥‹
+// अब show करो
 menu.style.visibility = "visible";
 };	
 document.getElementById("body").appendChild(row);
@@ -904,7 +904,7 @@ favorites = favorites.filter(s=>s!==contextSymbol);
 favorites.push(contextSymbol);
 }
 
-// â­ SAVE TO FIREBASE
+// ⭐ SAVE TO FIREBASE
 db.ref("favorites").set(favorites);
 
 }
@@ -938,7 +938,7 @@ document.getElementById("contextMenu").style.display="none";
 
 }
 
-// iframe click detect à¤•à¤°à¤¨à¥‡ à¤•à¥‡ à¤²à¤¿à¤
+// iframe click detect करने के लिए
 window.addEventListener("blur", ()=>{
 hideMenu();
 });
@@ -1026,7 +1026,7 @@ studies_overrides:{
 
 }
 
-// ðŸ–±ï¸ RESIZE LOGIC
+// 🖱️ RESIZE LOGIC
 function initResize(){
 
 const divider = document.getElementById("divider");
@@ -1040,17 +1040,17 @@ left.style.width = savedWidth + "%";
 
 // mouse down
 
-// ðŸ“± TOUCH START
+// 📱 TOUCH START
 divider.addEventListener("touchstart", ()=>{
 isDragging = true;
 divider.classList.add("active");
 });
 
-// ðŸ“± TOUCH MOVE
+// 📱 TOUCH MOVE
 document.addEventListener("touchmove",(e)=>{
 if(!isDragging) return;
 
-e.preventDefault(); // ðŸ”¥ IMPORTANT FIX
+e.preventDefault(); // 🔥 IMPORTANT FIX
 
 let touch = e.touches[0];
 
@@ -1068,7 +1068,7 @@ animationFrameId = null;
 }
 });
 
-// ðŸ“± TOUCH END
+// 📱 TOUCH END
 document.addEventListener("touchend", ()=>{
 if(isDragging){
 localStorage.setItem("leftWidthPercent", lastPercent);
