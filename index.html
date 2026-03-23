@@ -290,7 +290,15 @@ position:relative;
 <div id="divider"></div>
 
 <div class="right">
-<div id="chart" style="height:100%;width:100%;"></div>
+
+<div id="tradeInfo" style="padding:6px;background:#0A374A;color:white;font-size:12px;">
+Symbol: --
+&nbsp;&nbsp; Price: --
+&nbsp;&nbsp; Qty: --
+</div>
+
+<div id="chart" style="height:calc(100% - 30px);width:100%;"></div>
+
 </div>
 
 </div>
@@ -319,6 +327,11 @@ position:relative;
 <div class="settingRow">
 <label>Sound Alert</label>
 <input type="checkbox" id="soundToggle">
+</div>
+
+<div class="settingRow">
+<label>Position Size (USD)</label>
+<input type="number" id="positionUsdInput" step="0.1">
 </div>
 
 <div class="settingRow">
@@ -373,7 +386,7 @@ let isDragging = false;
 let animationFrameId = null;
 let lastPercent = 13;
 
-let settings={ sound:true, minRvol:15 };
+let settings={ sound:true, minRvol:15, positionUSD:5.5 };
 let favorites = [];
 let lastSoundTime = 0;
 
@@ -539,6 +552,16 @@ s.status==="TRADING"
 )
 .map(s=>s.symbol)
 
+}
+
+async function fetchLivePrice(symbol){
+try{
+const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
+const data = await res.json();
+return parseFloat(data.price);
+}catch{
+return null;
+}
 }
 
 async function fetchWithTimeout(url, timeout=10000){
@@ -759,6 +782,7 @@ hideMenu();
 
 selectedSymbol=s;
 changeChartSymbol(s);
+updateTradeInfo(s);
 render();
 };
 
@@ -1026,6 +1050,35 @@ studies_overrides:{
 
 }
 
+
+async function updateTradeInfo(symbol){
+
+const info = document.getElementById("tradeInfo");
+
+info.innerHTML =
+"Symbol: " + symbol +
+" &nbsp;&nbsp; Price: loading... &nbsp;&nbsp; Qty: --";
+
+let price = await fetchLivePrice(symbol);
+
+if(!price){
+info.innerHTML =
+"Symbol: " + symbol +
+" &nbsp;&nbsp; Price: -- &nbsp;&nbsp; Qty: --";
+return;
+}
+
+let usd = settings.positionUSD || 5.5;
+let qty = usd / price;
+
+info.innerHTML =
+"Symbol: " + symbol +
+" &nbsp;&nbsp; Price: " + price.toFixed(6) +
+" &nbsp;&nbsp; $" + usd + ": Qty = " + qty.toFixed(2);
+}
+
+
+
 // 🖱️ RESIZE LOGIC
 function initResize(){
 
@@ -1165,6 +1218,8 @@ await fetchSymbols();
 
 initChart();
 
+updateTradeInfo("BTCUSDT");
+
 initResize();
 
 if(isMasterScanner){
@@ -1189,12 +1244,14 @@ pop.style.display="block";
 
 document.getElementById("minRvolInput").value=settings.minRvol;
 document.getElementById("soundToggle").checked=settings.sound;
+document.getElementById("positionUsdInput").value=settings.positionUSD;
 };
 
 // SAVE
 document.getElementById("saveSettingsBtn").onclick=()=>{
 settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").value) || 15);
 settings.sound = document.getElementById("soundToggle").checked;
+settings.positionUSD = parseFloat(document.getElementById("positionUsdInput").value) || 5.5;
 
 saveSettings();
 document.getElementById("settingsPopup").style.display="none";
