@@ -22,13 +22,36 @@ height:100vh;
 
 .left{
 width:13%;
+min-width:8%;
+max-width:50%;
 border-right:2px solid #0A374A;
 display:flex;
 flex-direction:column;
 height:100vh;
 }
 
-.right{width:87%;}
+.right{
+flex:1;
+}
+
+#divider{
+width:3px;
+cursor:col-resize;
+background:#0A374A;
+transition:all 0.2s;
+}
+
+/* âœ¨ Hover glow */
+#divider:hover{
+background:#1E90FF;
+box-shadow:0 0 6px #1E90FF;
+}
+
+/* ðŸ”¥ Active drag glow */
+#divider.active{
+background:#00CFFF;
+box-shadow:0 0 10px #00CFFF;
+}
 
 table{
 width:100%;
@@ -42,6 +65,7 @@ top:0px;
 background:#0A374A;
 color:white;
 z-index:10;
+text-align:left;
 }
 
 th,td{
@@ -49,21 +73,29 @@ padding:5px 6px;  /* top-bottom 4px, left-right 6px */
 border-bottom:1px solid #0A374A;
 font-size:12px;
 white-space:nowrap;
-/* REMOVE ये 2 line */
-overflow:visible;
-text-overflow:clip;
+
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 
-/* Hover = mouse जिस row पर है */
 tbody tr:hover{
 background:#B3DAFF;
 cursor:pointer;
 }
 
-/* Selected = click के बाद permanent */
 .selected{
 background:#B3DAFF;
+}
+
+
+.favoriteRow{
+background:#FFF9C4; /* light yellow */
+}
+
+
+.favoriteRow.selected{
+background:#B3DAFF !important;
 }
 
 .sectionHeader{
@@ -74,11 +106,10 @@ text-align:left;
 
 .dividerRow td{
 padding:0;
-height:8px;
+height:0px;
 border-top:3px solid #0A374A;
 background:none;
 }
-
 
 #status{
 position:sticky;
@@ -234,8 +265,8 @@ position:relative;
 
 <div id="status">
 <span id="updateText">Starting...</span>
-<button id="themeBtn" onclick="toggleTheme()">☀️</button>
-<button id="settingsBtn">⚙️</button>
+<button id="themeBtn" onclick="toggleTheme()">â˜€ï¸</button>
+<button id="settingsBtn">âš™ï¸</button>
 </div>
 
 <div class="tableWrapper">
@@ -255,6 +286,9 @@ position:relative;
 
 </div>
 
+<!--DRAG DIVIDER -->
+<div id="divider"></div>
+
 <div class="right">
 <div id="chart" style="height:100%;width:100%;"></div>
 </div>
@@ -262,16 +296,17 @@ position:relative;
 </div>
 
 <div id="contextMenu">
-<div id="openTVOption">Open in TradingView</div>
-<div id="copyOption">Copy Symbol</div>
-<div id="deleteOption">Delete</div>
+<div id="openTVOption">ðŸ“„ Open TradingView</div>
+<div id="copyOption">ðŸ“‹ Copy Symbol</div>
+<div id="favOption">â­ Favorite Symbol</div>
+<div id="deleteOption">âŒ Delete Symbol</div>
 </div>
 
 <div id="settingsPopup">
 
 <div class="settingsHeader">
 <span>Settings</span>
-<span id="closeSettings" style="cursor:pointer;">✖</span>
+<span id="closeSettings" style="cursor:pointer;">âœ–</span>
 </div>
 
 <div class="settingsBody">
@@ -334,8 +369,12 @@ let currentTheme="light";
 let contextSymbol=null;
 let isMasterScanner=false;
 let wakeLock=null;
+let isDragging = false;
+let animationFrameId = null;
+let lastPercent = 13;
 
 let settings={ sound:true, minRvol:15 };
+let favorites = [];
 let lastSoundTime = 0;
 
 async function enableWakeLock(){
@@ -369,6 +408,12 @@ db.ref("scanner").set(highRvolSymbols);
 
 async function loadList(){
 
+// â­ LOAD FAVORITES FROM FIREBASE
+db.ref("favorites").on("value",(snap)=>{
+favorites = snap.val() || [];
+render();
+});
+
 let firstLoad = true;
 
 db.ref("scanner").on("value",(snapshot)=>{
@@ -381,7 +426,7 @@ for(let s in newData){
 
 if(!highRvolSymbols[s]){
 
-// 🔔 SOUND FOR VIEWER + MASTER BOTH
+// ðŸ”” SOUND FOR VIEWER + MASTER BOTH
 if(settings.sound){
 let now = Date.now();
 
@@ -473,6 +518,7 @@ if(confirm("Reset Scanner ? All saved data will be cleared.")){
 
 db.ref("scanner").remove();
 db.ref("scannerLock").remove();
+db.ref("favorites").remove();
 localStorage.removeItem("rvolSettings");
 location.reload();
 
@@ -574,7 +620,7 @@ if(item.r){
 
 let isNew = !highRvolSymbols[item.s];
 
-// 🔔 sound only if new symbol
+// ðŸ”” sound only if new symbol
 if(isNew && settings.sound && isMasterScanner){
 
 let now = Date.now();
@@ -587,7 +633,7 @@ lastSoundTime = now;
 
 }
 
-// 📊 update or add symbol
+// ðŸ“Š update or add symbol
 highRvolSymbols = {
 [item.s]:{
 time:Date.now(),
@@ -599,7 +645,7 @@ Object.entries(highRvolSymbols)
 )
 };
 
-// ⚡ save + render only if new OR updated
+// âš¡ save + render only if new OR updated
 saveList();
 render();
 
@@ -669,26 +715,48 @@ entries.sort((a,b)=>(a[1].rvol - b[1].rvol) * sortDirection);
 sortedKeys = entries.map(e => e[0]);
 selectedIndex = sortedKeys.indexOf(selectedSymbol);
 
-entries.forEach(([s])=>{
-createRow(s);
-});
+// ===== FAVORITES SECTION =====
+if(favorites.length){
 
+createSection("â˜… Favorites");
+
+entries
+.filter(([s]) => favorites.includes(s))
+.forEach(([s]) => createRow(s));
+
+createDivider();
+}
+
+// ===== NORMAL LIST =====
+createSection("All Signals");
+
+entries
+.filter(([s]) => !favorites.includes(s))
+.forEach(([s]) => createRow(s));
 }
 
 function createRow(s){
 
 let row=document.createElement("tr");
 
+// â­ Favorite row highlight
+if(favorites.includes(s)){
+row.classList.add("favoriteRow");
+}
+
 if(selectedSymbol===s)
 row.classList.add("selected");
 
 row.innerHTML=`
 <td>${s}</td>
+
 <td>${formatTime(highRvolSymbols[s].time)}</td>
 <td>${highRvolSymbols[s].rvol}</td>
 `;
 
 row.onclick=()=>{
+hideMenu();  
+
 selectedSymbol=s;
 changeChartSymbol(s);
 render();
@@ -697,19 +765,74 @@ render();
 row.oncontextmenu=(e)=>{
 e.preventDefault();
 
-// पहले hide करो (duplicate open fix)
 hideMenu();
 
-contextSymbol=s;
+contextSymbol = s;
 
-const menu=document.getElementById("contextMenu");
+const menu = document.getElementById("contextMenu");
 
-menu.style.display="block";
-menu.style.left = e.clientX + "px";
-menu.style.top = e.clientY + "px";
-};
+// à¤ªà¤¹à¤²à¥‡ visible à¤•à¤°à¥‹ à¤¤à¤¾à¤•à¤¿ size à¤®à¤¿à¤² à¤¸à¤•à¥‡
+menu.style.display = "block";
+menu.style.visibility = "hidden";
 
+// menu size à¤²à¥‹
+const menuWidth = menu.offsetWidth;
+const menuHeight = menu.offsetHeight;
+
+// screen size
+const screenWidth = window.innerWidth;
+const screenHeight = window.innerHeight;
+
+// default position
+let left = e.clientX;
+let top = e.clientY;
+
+// ðŸ‘‰ RIGHT overflow check
+if(left + menuWidth > screenWidth){
+left = screenWidth - menuWidth - 5;
+}
+
+// ðŸ‘‰ BOTTOM overflow check
+if(top + menuHeight > screenHeight){
+top = screenHeight - menuHeight - 5;
+}
+
+// ðŸ‘‰ LEFT overflow safety
+if(left < 5){
+left = 5;
+}
+
+// ðŸ‘‰ TOP overflow safety
+if(top < 5){
+top = 5;
+}
+
+// apply final position
+menu.style.left = left + "px";
+menu.style.top = top + "px";
+
+// à¤…à¤¬ show à¤•à¤°à¥‹
+menu.style.visibility = "visible";
+};	
 document.getElementById("body").appendChild(row);
+
+}
+
+function createSection(title){
+
+let tr = document.createElement("tr");
+tr.className = "sectionHeader";
+tr.innerHTML = `<td colspan="3">${title}</td>`;
+document.getElementById("body").appendChild(tr);
+
+}
+
+function createDivider(){
+
+let tr = document.createElement("tr");
+tr.className = "dividerRow";
+tr.innerHTML = `<td colspan="3"></td>`;
+document.getElementById("body").appendChild(tr);
 
 }
 
@@ -771,6 +894,24 @@ hideMenu();
 
 };
 
+document.getElementById("favOption").onclick=()=>{
+
+if(contextSymbol){
+
+if(favorites.includes(contextSymbol)){
+favorites = favorites.filter(s=>s!==contextSymbol);
+}else{
+favorites.push(contextSymbol);
+}
+
+// â­ SAVE TO FIREBASE
+db.ref("favorites").set(favorites);
+
+}
+
+hideMenu();
+};
+
 document.getElementById("deleteOption").onclick=()=>{
 
 if(contextSymbol){
@@ -797,15 +938,22 @@ document.getElementById("contextMenu").style.display="none";
 
 }
 
-// iframe click detect करने के लिए
+// iframe click detect à¤•à¤°à¤¨à¥‡ à¤•à¥‡ à¤²à¤¿à¤
 window.addEventListener("blur", ()=>{
 hideMenu();
 });
 
 
 document.addEventListener("click",(e)=>{
+
+// settings close
 if(!e.target.closest("#settingsPopup") && !e.target.closest("#settingsBtn"))
 document.getElementById("settingsPopup").style.display="none";
+
+// ? context menu close (anywhere)
+if(!e.target.closest("#contextMenu")){
+hideMenu();
+}
 
 });
 
@@ -878,6 +1026,99 @@ studies_overrides:{
 
 }
 
+// ðŸ–±ï¸ RESIZE LOGIC
+function initResize(){
+
+const divider = document.getElementById("divider");
+const left = document.querySelector(".left");
+
+// load saved width
+const savedWidth = localStorage.getItem("leftWidthPercent");
+if(savedWidth){
+left.style.width = savedWidth + "%";
+}
+
+// mouse down
+
+// ðŸ“± TOUCH START
+divider.addEventListener("touchstart", ()=>{
+isDragging = true;
+divider.classList.add("active");
+});
+
+// ðŸ“± TOUCH MOVE
+document.addEventListener("touchmove",(e)=>{
+if(!isDragging) return;
+
+e.preventDefault(); // ðŸ”¥ IMPORTANT FIX
+
+let touch = e.touches[0];
+
+lastPercent = (touch.clientX / window.innerWidth) * 100;
+
+// limit
+if(lastPercent < 8) lastPercent = 8;
+if(lastPercent > 50) lastPercent = 50;
+
+if(!animationFrameId){
+animationFrameId = requestAnimationFrame(()=>{
+left.style.width = lastPercent + "%";
+animationFrameId = null;
+});
+}
+});
+
+// ðŸ“± TOUCH END
+document.addEventListener("touchend", ()=>{
+if(isDragging){
+localStorage.setItem("leftWidthPercent", lastPercent);
+}
+
+isDragging = false;
+divider.classList.remove("active");
+});
+
+divider.addEventListener("mousedown", ()=>{
+isDragging = true;
+divider.classList.add("active");
+});
+
+// mouse move
+document.addEventListener("mousemove",(e)=>{
+if(!isDragging) return;
+
+// latest mouse position store
+lastPercent = (e.clientX / window.innerWidth) * 100;
+
+// limit
+if(lastPercent < 8) lastPercent = 8;
+if(lastPercent > 50) lastPercent = 50;
+
+// animation frame for smooth update
+if(!animationFrameId){
+animationFrameId = requestAnimationFrame(()=>{
+
+left.style.width = lastPercent + "%";
+
+animationFrameId = null;
+
+});
+}
+});
+
+document.addEventListener("mouseup", ()=>{
+if(isDragging){
+
+localStorage.setItem("leftWidthPercent", lastPercent);
+
+}
+
+isDragging = false;
+divider.classList.remove("active");
+});
+
+}
+
 function toggleTheme(){
 
 currentTheme=currentTheme==="light"?"dark":"light";
@@ -923,6 +1164,8 @@ render();
 await fetchSymbols();
 
 initChart();
+
+initResize();
 
 if(isMasterScanner){
 
