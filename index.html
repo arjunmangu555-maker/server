@@ -41,13 +41,13 @@ background:#0A374A;
 transition:all 0.2s;
 }
 
-/* ✨ Hover glow */
+/* âœ¨ Hover glow */
 #divider:hover{
 background:#1E90FF;
 box-shadow:0 0 6px #1E90FF;
 }
 
-/* 🔥 Active drag glow */
+/* ðŸ”¥ Active drag glow */
 #divider.active{
 background:#00CFFF;
 box-shadow:0 0 10px #00CFFF;
@@ -236,6 +236,7 @@ border:none;
 font-size:14px;
 }
 
+
 #cancelSettings{
 background:white;
 border:2px solid #0A374A;
@@ -248,11 +249,23 @@ color:white;
 }
 
 .tableWrapper{
-height:calc(100vh - 40px); /* status height adjust */
+flex:1;
 overflow-y:auto;
 position:relative;
 }
 
+/* ===== TRADE PANEL ===== */
+#tradeInfo{
+height:60px;
+background:#0A374A;
+color:white;
+display:flex;
+align-items:center;
+padding:6px;
+font-size:12px;
+white-space:nowrap;
+border-top:2px solid #062733;
+}
 
 </style>
 </head>
@@ -265,8 +278,8 @@ position:relative;
 
 <div id="status">
 <span id="updateText">Starting...</span>
-<button id="themeBtn" onclick="toggleTheme()">☀️</button>
-<button id="settingsBtn">⚙️</button>
+<button id="themeBtn" onclick="toggleTheme()">â˜€ï¸</button>
+<button id="settingsBtn">âš™ï¸</button>
 </div>
 
 <div class="tableWrapper">
@@ -282,20 +295,25 @@ position:relative;
 <tbody id="body"></tbody>
 </table>
 
-</div>
 
+</div>
+<div id="tradeInfo"
+style="height:60px;
+background:#0A374A;
+color:white;
+display:flex;
+align-items:center;
+padding:6px;
+font-size:12px;
+white-space:nowrap;">
+<button id="calcQtyBtn">Calculate Qty</button>
+</div>
 </div>
 
 <!--DRAG DIVIDER -->
 <div id="divider"></div>
 
 <div class="right">
-
-<div id="tradeInfo" style="padding:6px;background:#0A374A;color:white;font-size:12px;">
-Symbol: --
-&nbsp;&nbsp; Price: --
-&nbsp;&nbsp; Qty: --
-</div>
 
 <div id="chart" style="height:calc(100% - 30px);width:100%;"></div>
 
@@ -304,17 +322,17 @@ Symbol: --
 </div>
 
 <div id="contextMenu">
-<div id="openTVOption">📄 Open TradingView</div>
-<div id="copyOption">📋 Copy Symbol</div>
-<div id="favOption">⭐ Favorite Symbol</div>
-<div id="deleteOption">❌ Delete Symbol</div>
+<div id="openTVOption">ðŸ“„ Open TradingView</div>
+<div id="copyOption">ðŸ“‹ Copy Symbol</div>
+<div id="favOption">â­ Favorite Symbol</div>
+<div id="deleteOption">âŒ Delete Symbol</div>
 </div>
 
 <div id="settingsPopup">
 
 <div class="settingsHeader">
 <span>Settings</span>
-<span id="closeSettings" style="cursor:pointer;">✖</span>
+<span id="closeSettings" style="cursor:pointer;">âœ–</span>
 </div>
 
 <div class="settingsBody">
@@ -333,6 +351,12 @@ Symbol: --
 <label>Position Size (USD)</label>
 <input type="number" id="positionUsdInput" step="0.1">
 </div>
+
+<div class="settingRow">
+<label>Row Height</label>
+<input type="number" id="rowHeightInput" step="1">
+</div>
+
 
 <div class="settingRow">
 <button id="resetBtn" class="resetBtn">RESET (Clear All)</button>
@@ -376,6 +400,7 @@ let symbols=[];
 let highRvolSymbols={};
 let widget=null;
 let selectedSymbol=null;
+let lastClickedSymbol="";
 let selectedIndex = -1;
 let sortedKeys = [];
 let currentTheme="light";
@@ -386,7 +411,7 @@ let isDragging = false;
 let animationFrameId = null;
 let lastPercent = 13;
 
-let settings={ sound:true, minRvol:15, positionUSD:5.5 };
+let settings={ sound:true, minRvol:15, positionUSD:5.5, rowHeight:28 };
 let favorites = [];
 let lastSoundTime = 0;
 
@@ -421,7 +446,7 @@ db.ref("scanner").set(highRvolSymbols);
 
 async function loadList(){
 
-// ⭐ LOAD FAVORITES FROM FIREBASE
+// â­ LOAD FAVORITES FROM FIREBASE
 db.ref("favorites").on("value",(snap)=>{
 favorites = snap.val() || [];
 render();
@@ -439,7 +464,7 @@ for(let s in newData){
 
 if(!highRvolSymbols[s]){
 
-// 🔔 SOUND FOR VIEWER + MASTER BOTH
+// ðŸ”” SOUND FOR VIEWER + MASTER BOTH
 if(settings.sound){
 let now = Date.now();
 
@@ -643,7 +668,7 @@ if(item.r){
 
 let isNew = !highRvolSymbols[item.s];
 
-// 🔔 sound only if new symbol
+// ðŸ”” sound only if new symbol
 if(isNew && settings.sound && isMasterScanner){
 
 let now = Date.now();
@@ -656,7 +681,7 @@ lastSoundTime = now;
 
 }
 
-// 📊 update or add symbol
+// ðŸ“Š update or add symbol
 highRvolSymbols = {
 [item.s]:{
 time:Date.now(),
@@ -668,7 +693,7 @@ Object.entries(highRvolSymbols)
 )
 };
 
-// ⚡ save + render only if new OR updated
+// âš¡ save + render only if new OR updated
 saveList();
 render();
 
@@ -741,7 +766,7 @@ selectedIndex = sortedKeys.indexOf(selectedSymbol);
 // ===== FAVORITES SECTION =====
 if(favorites.length){
 
-createSection("★ Favorites");
+createSection("â˜… Favorites");
 
 entries
 .filter(([s]) => favorites.includes(s))
@@ -761,8 +786,9 @@ entries
 function createRow(s){
 
 let row=document.createElement("tr");
+row.style.height = settings.rowHeight + "px";
 
-// ⭐ Favorite row highlight
+// â­ Favorite row highlight
 if(favorites.includes(s)){
 row.classList.add("favoriteRow");
 }
@@ -781,9 +807,15 @@ row.onclick=()=>{
 hideMenu();  
 
 selectedSymbol=s;
+lastClickedSymbol=s;
+
 changeChartSymbol(s);
-updateTradeInfo(s);
 render();
+
+document.getElementById("tradeInfo").innerHTML =
+'<button id="calcQtyBtn">Calculate Qty</button>';
+
+bindQtyButton();
 };
 
 row.oncontextmenu=(e)=>{
@@ -795,11 +827,11 @@ contextSymbol = s;
 
 const menu = document.getElementById("contextMenu");
 
-// पहले visible करो ताकि size मिल सके
+// à¤ªà¤¹à¤²à¥‡ visible à¤•à¤°à¥‹ à¤¤à¤¾à¤•à¤¿ size à¤®à¤¿à¤² à¤¸à¤•à¥‡
 menu.style.display = "block";
 menu.style.visibility = "hidden";
 
-// menu size लो
+// menu size à¤²à¥‹
 const menuWidth = menu.offsetWidth;
 const menuHeight = menu.offsetHeight;
 
@@ -811,22 +843,22 @@ const screenHeight = window.innerHeight;
 let left = e.clientX;
 let top = e.clientY;
 
-// 👉 RIGHT overflow check
+// ðŸ‘‰ RIGHT overflow check
 if(left + menuWidth > screenWidth){
 left = screenWidth - menuWidth - 5;
 }
 
-// 👉 BOTTOM overflow check
+// ðŸ‘‰ BOTTOM overflow check
 if(top + menuHeight > screenHeight){
 top = screenHeight - menuHeight - 5;
 }
 
-// 👉 LEFT overflow safety
+// ðŸ‘‰ LEFT overflow safety
 if(left < 5){
 left = 5;
 }
 
-// 👉 TOP overflow safety
+// ðŸ‘‰ TOP overflow safety
 if(top < 5){
 top = 5;
 }
@@ -835,7 +867,7 @@ top = 5;
 menu.style.left = left + "px";
 menu.style.top = top + "px";
 
-// अब show करो
+// à¤…à¤¬ show à¤•à¤°à¥‹
 menu.style.visibility = "visible";
 };	
 document.getElementById("body").appendChild(row);
@@ -928,7 +960,7 @@ favorites = favorites.filter(s=>s!==contextSymbol);
 favorites.push(contextSymbol);
 }
 
-// ⭐ SAVE TO FIREBASE
+// â­ SAVE TO FIREBASE
 db.ref("favorites").set(favorites);
 
 }
@@ -962,7 +994,7 @@ document.getElementById("contextMenu").style.display="none";
 
 }
 
-// iframe click detect करने के लिए
+// iframe click detect à¤•à¤°à¤¨à¥‡ à¤•à¥‡ à¤²à¤¿à¤
 window.addEventListener("blur", ()=>{
 hideMenu();
 });
@@ -1050,7 +1082,6 @@ studies_overrides:{
 
 }
 
-
 async function updateTradeInfo(symbol){
 
 const info = document.getElementById("tradeInfo");
@@ -1072,14 +1103,32 @@ let usd = settings.positionUSD || 5.5;
 let qty = usd / price;
 
 info.innerHTML =
-"Symbol: " + symbol +
-" &nbsp;&nbsp; Price: " + price.toFixed(6) +
-" &nbsp;&nbsp; $" + usd + ": Qty = " + qty.toFixed(2);
+info.innerHTML =
+"Symbol = " + symbol + "<br>" +
+"Price  = " + price.toFixed(6) + "<br>" +
+"Size   = " + usd + " USD<br>" +
+"Qty    = " + qty.toFixed(2);
 }
 
+/* ===== YAHAN SE BUTTON BIND FUNCTION START ===== */
+
+function bindQtyButton(){
+
+const btn = document.getElementById("calcQtyBtn");
+
+if(!btn) return;
+
+btn.onclick = ()=>{
+if(lastClickedSymbol){
+updateTradeInfo(lastClickedSymbol);
+}
+};
+
+}
+
+/* ===== YAHAN FUNCTION END ===== */
 
 
-// 🖱️ RESIZE LOGIC
 function initResize(){
 
 const divider = document.getElementById("divider");
@@ -1093,17 +1142,17 @@ left.style.width = savedWidth + "%";
 
 // mouse down
 
-// 📱 TOUCH START
+// ðŸ“± TOUCH START
 divider.addEventListener("touchstart", ()=>{
 isDragging = true;
 divider.classList.add("active");
 });
 
-// 📱 TOUCH MOVE
+// ðŸ“± TOUCH MOVE
 document.addEventListener("touchmove",(e)=>{
 if(!isDragging) return;
 
-e.preventDefault(); // 🔥 IMPORTANT FIX
+e.preventDefault(); // ðŸ”¥ IMPORTANT FIX
 
 let touch = e.touches[0];
 
@@ -1121,7 +1170,7 @@ animationFrameId = null;
 }
 });
 
-// 📱 TOUCH END
+// ðŸ“± TOUCH END
 document.addEventListener("touchend", ()=>{
 if(isDragging){
 localStorage.setItem("leftWidthPercent", lastPercent);
@@ -1218,7 +1267,10 @@ await fetchSymbols();
 
 initChart();
 
-updateTradeInfo("BTCUSDT");
+document.getElementById("tradeInfo").innerHTML =
+'<button id="calcQtyBtn">Calculate Qty</button>';
+
+bindQtyButton();
 
 initResize();
 
@@ -1245,6 +1297,7 @@ pop.style.display="block";
 document.getElementById("minRvolInput").value=settings.minRvol;
 document.getElementById("soundToggle").checked=settings.sound;
 document.getElementById("positionUsdInput").value=settings.positionUSD;
+document.getElementById("rowHeightInput").value=settings.rowHeight;
 };
 
 // SAVE
@@ -1252,6 +1305,7 @@ document.getElementById("saveSettingsBtn").onclick=()=>{
 settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").value) || 15);
 settings.sound = document.getElementById("soundToggle").checked;
 settings.positionUSD = parseFloat(document.getElementById("positionUsdInput").value) || 5.5;
+settings.rowHeight = Math.max(18, parseInt(document.getElementById("rowHeightInput").value) || 40);
 
 saveSettings();
 document.getElementById("settingsPopup").style.display="none";
