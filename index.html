@@ -117,6 +117,12 @@ border-top:3px solid #0A374A;
 background:none;
 }
 
+#copyQtyBtn{
+font-size:11px;
+padding:1px 4px;
+cursor:pointer;
+}
+
 #status{
 position:sticky;
 top:0;
@@ -261,19 +267,6 @@ position:relative;
 
 user-select:none;
 -webkit-user-select:none;
-}
-
-/* ===== TRADE PANEL ===== */
-#tradeInfo{
-height:60px;
-background:#0A374A;
-color:white;
-display:flex;
-align-items:center;
-padding:6px;
-font-size:12px;
-white-space:nowrap;
-border-top:2px solid #062733;
 }
 
 </style>
@@ -458,6 +451,7 @@ async function loadList(){
 // ⭐ LOAD FAVORITES FROM FIREBASE
 db.ref("favorites").on("value",(snap)=>{
 favorites = snap.val() || [];
+if(Object.keys(highRvolSymbols).length)
 render();
 });
 
@@ -1116,14 +1110,21 @@ let usd = settings.positionUSD || 5.5;
 let qty = usd / price;
 
 info.innerHTML =
-info.innerHTML =
 "Symbol = " + symbol + "<br>" +
 "Price  = " + price.toFixed(6) + "<br>" +
 "Size   = " + usd + " USD<br>" +
-"Qty    = " + qty.toFixed(2);
-}
+"Qty    = " + qty.toFixed(2) +
+" <button id='copyQtyBtn' style='margin-left:6px;font-size:11px;'>📋</button>";
 
-/* ===== YAHAN SE BUTTON BIND FUNCTION START ===== */
+const copyBtn = document.getElementById("copyQtyBtn");
+if(copyBtn){
+copyBtn.onclick = ()=>{
+navigator.clipboard.writeText(qty.toFixed(2));
+copyBtn.innerText = "✓";
+setTimeout(()=> copyBtn.innerText = "📋",1000);
+};
+}
+}
 
 function bindQtyButton(){
 
@@ -1139,8 +1140,6 @@ updateTradeInfo(lastClickedSymbol);
 
 }
 
-/* ===== YAHAN FUNCTION END ===== */
-
 
 function initResize(){
 
@@ -1153,15 +1152,12 @@ if(savedWidth){
 left.style.width = savedWidth + "%";
 }
 
-// mouse down
 
-// 📱 TOUCH START
 divider.addEventListener("touchstart", ()=>{
 isDragging = true;
 divider.classList.add("active");
 });
 
-// 📱 TOUCH MOVE
 document.addEventListener("touchmove",(e)=>{
 if(!isDragging) return;
 
@@ -1171,7 +1167,7 @@ let touch = e.touches[0];
 
 lastPercent = (touch.clientX / window.innerWidth) * 100;
 
-// limit
+
 if(lastPercent < 8) lastPercent = 8;
 if(lastPercent > 50) lastPercent = 50;
 
