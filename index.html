@@ -1043,12 +1043,14 @@ withdateranges:false,
 details:false,
 hotlist:false,
 calendar:false,
-disabled_features: ["volume_overlay"], 	
-
+	
+disabled_features: ["volume_overlay"],
+	
 studies:["Volume@tv-basicstudies"],
 studies_overrides:{
 "volume.volume.transparency":0
 }
+
 });
 
 }
@@ -1062,8 +1064,9 @@ try{ widget.remove(); } catch(e){}
 document.getElementById("chart").innerHTML="";
 
 widget=new TradingView.widget({
+
 container_id:"chart",
-symbol:"BINANCE:BTCUSDT.P",
+symbol:"BINANCE:"+symbol+".P",
 interval:"15",
 autosize:true,
 theme:currentTheme,
@@ -1080,15 +1083,18 @@ withdateranges:false,
 details:false,
 hotlist:false,
 calendar:false,
-disabled_features: ["volume_overlay"], 
+	
+disabled_features: ["volume_overlay"],
+	
 studies:["Volume@tv-basicstudies"],
 studies_overrides:{
 "volume.volume.transparency":0
 }
+
 });
 
 }
-
+	
 async function updateTradeInfo(symbol){
 
 const info = document.getElementById("tradeInfo");
