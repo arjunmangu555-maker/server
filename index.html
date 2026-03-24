@@ -80,7 +80,7 @@ text-overflow:ellipsis;
 
 
 tbody tr:hover{
-background:#B3DAFF;
+background:#FACDCD;
 cursor:pointer;
 }
 
@@ -91,22 +91,25 @@ user-select:none;
 }	
 
 .selected{
-background:#B3DAFF;
+background:#6BB1F2;
 }
 
 
 .favoriteRow{
-background:#FFF9C4; /* light yellow */
+background:#E6FCD9; /* light yellow */
+color:#000000;
+font-weight:bold;
 }
 
 
 .favoriteRow.selected{
-background:#B3DAFF !important;
+background:#6BB1F2 !important;
 }
 
 .sectionHeader{
 background:#f0f0f0;
-font-weight:bold;
+color:black;
+font-Arial:bold;
 text-align:left;
 }
 
@@ -324,7 +327,7 @@ white-space:nowrap;">
 </div>
 
 <div id="contextMenu">
-<div id="openTVOption">📄 Open TradingView</div>
+<div id="openTVOption">📊 Open TradingView</div>
 <div id="copyOption">📋 Copy Symbol</div>
 <div id="favOption">⭐ Favorite Symbol</div>
 <div id="deleteOption">❌ Delete Symbol</div>
@@ -769,7 +772,7 @@ selectedIndex = sortedKeys.indexOf(selectedSymbol);
 // ===== FAVORITES SECTION =====
 if(favorites.length){
 
-createSection("★ Favorites");
+createSection("⭐ Favorites");
 
 entries
 .filter(([s]) => favorites.includes(s))
@@ -1094,8 +1097,10 @@ async function updateTradeInfo(symbol){
 const info = document.getElementById("tradeInfo");
 
 info.innerHTML =
-"Symbol: " + symbol +
-" &nbsp;&nbsp; Price: loading... &nbsp;&nbsp; Qty: --";
+"Symbol = " + symbol + "<br>" +
+"Price  = loading...<br>" +
+"Size   = " + settings.positionUSD + " USD<br>" +
+"Qty    = --";
 
 let price = await fetchLivePrice(symbol);
 
