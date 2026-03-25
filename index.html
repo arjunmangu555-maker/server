@@ -595,13 +595,7 @@ if(!confirm("Force remove master scanner lock?")){
 return;
 }
 
-db.ref("scannerLock").remove().then(()=>{
-
-console.log("Master lock cleared");
-
-checkScannerLock();  
-
-}).catch(err=>{
+db.ref("scannerLock").remove(); catch(err=>{
 console.error("Error clearing master lock:",err);
 });
 
@@ -1368,13 +1362,6 @@ initResize();
 
 applyLayout();   // 🔥 NEW	
 
-if(isMasterScanner){
-
-enableWakeLock();
-
-scannerLoop();
-
-}
 
 }
 
@@ -1426,17 +1413,6 @@ setInterval(()=>{
 console.log("Scanner Alive", new Date().toLocaleTimeString());
 
 },60000);
-
-window.addEventListener("beforeunload",()=>{
-
-if(isMasterScanner){
-
-db.ref("scannerLock").remove();
-
-}
-
-});
-
 
 </script>
 
