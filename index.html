@@ -696,6 +696,11 @@ return null;
 
 async function scan(){
 
+if(!symbols.length){
+document.getElementById("updateText").innerText="Waiting symbols...";
+return;
+}
+
 document.getElementById("updateText").innerText="Scanning...";
 
 const batchSize=50;
@@ -1351,10 +1356,13 @@ async function init(){
 
 await loadList();
 
+await fetchSymbols();
+
 await checkScannerLock();
+
 db.ref("scannerLock").on("value", ()=>{
 checkScannerLock();
-});	
+});
 
 document.getElementById("soundToggle").checked = settings.sound;
 
