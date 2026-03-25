@@ -402,6 +402,9 @@ measurementId: "G-9FGKSK1CD6"
 };
 
 firebase.initializeApp(firebaseConfig);
+window.onerror = function(msg, url, line){
+console.error("JS ERROR:", msg, "at line", line);
+};	
 
 const db = firebase.database();
 
@@ -555,7 +558,10 @@ if(result.committed){
 
 if(!isMasterScanner){
 console.log("Became MASTER → starting scanner");
+
 enableWakeLock();
+scannerRunning = false;
+await scan();
 scannerLoop();
 }
 
@@ -566,7 +572,13 @@ document.getElementById("updateText").innerText = "Master Scanner";
 
 if(isMasterScanner){
 console.log("Lost MASTER → stopping scanner");
+
 scannerRunning = false;
+
+if(wakeLock){
+wakeLock.release().catch(()=>{});
+wakeLock = null;
+}
 }
 
 isMasterScanner = false;
@@ -595,11 +607,12 @@ if(!confirm("Force remove master scanner lock?")){
 return;
 }
 
-db.ref("scannerLock").remove(); catch(err=>{
+db.ref("scannerLock").remove()
+.catch(err=>{
 console.error("Error clearing master lock:",err);
 });
 
-};	
+};
 
 async function fetchSymbols(){
 
