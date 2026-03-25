@@ -363,6 +363,10 @@ white-space:nowrap;">
 <input type="number" id="rowHeightInput" step="1">
 </div>
 
+<div class="settingRow">
+<label>Chart on Left</label>
+<input type="checkbox" id="swapLayoutInput">
+</div>	
 
 <div class="settingRow">
 <button id="resetBtn" class="resetBtn">RESET (Clear All)</button>
@@ -417,7 +421,14 @@ let isDragging = false;
 let animationFrameId = null;
 let lastPercent = 13;
 
-let settings={ sound:true, minRvol:15, positionUSD:5.5, rowHeight:28 };
+let settings={
+sound:true,
+minRvol:15,
+positionUSD:5.5,
+rowHeight:28,
+swapLayout:false  
+};
+	
 let favorites = [];
 let lastSoundTime = 0;
 
@@ -1261,6 +1272,27 @@ changeChartSymbol("BTCUSDT");
 
 }
 
+function applyLayout(){
+
+const container = document.querySelector(".container");
+const left = document.querySelector(".left");
+const right = document.querySelector(".right");
+const divider = document.getElementById("divider");
+
+if(settings.swapLayout){
+
+container.insertBefore(right, left);
+container.insertBefore(divider, left);
+
+}else{
+
+container.insertBefore(left, right);
+container.insertBefore(divider, right);
+
+}
+
+}	
+
 async function scannerLoop(){
 
 while(true){
@@ -1303,6 +1335,8 @@ bindQtyButton();
 
 initResize();
 
+applyLayout();   // 🔥 NEW	
+
 if(isMasterScanner){
 
 enableWakeLock();
@@ -1320,6 +1354,7 @@ init();
 // OPEN
 document.getElementById("settingsBtn").onclick=()=>{
 const pop=document.getElementById("settingsPopup");
+document.getElementById("swapLayoutInput").checked = settings.swapLayout;
 
 pop.style.display="block";
 
@@ -1335,7 +1370,9 @@ settings.minRvol = Math.max(1, parseInt(document.getElementById("minRvolInput").
 settings.sound = document.getElementById("soundToggle").checked;
 settings.positionUSD = parseFloat(document.getElementById("positionUsdInput").value) || 5.5;
 settings.rowHeight = Math.max(18, parseInt(document.getElementById("rowHeightInput").value) || 40);
-
+settings.swapLayout = document.getElementById("swapLayoutInput").checked;
+applyLayout();  
+	
 saveSettings();
 document.getElementById("settingsPopup").style.display="none";
 };
