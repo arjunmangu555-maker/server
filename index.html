@@ -549,7 +549,6 @@ return;
 });
 
 if(result.committed){
-
 if(!isMasterScanner){
 console.log("Became MASTER → starting scanner");
 
@@ -1381,12 +1380,15 @@ applyLayout();   // 🔥 NEW
 }
 
 init();
-	
-window.addEventListener("beforeunload", function(){
+
+window.addEventListener("unload", function(){
 if(isMasterScanner){
-db.ref("scannerLock").remove();
+const xhr = new XMLHttpRequest();
+xhr.open("DELETE", firebaseConfig.databaseURL + "/scannerLock.json", false);
+xhr.send(null);
 }
 });
+
 	
 // ===== SETTINGS MODAL LOGIC =====
 
