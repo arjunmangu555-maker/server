@@ -330,6 +330,7 @@ white-space:nowrap;">
 <div id="openTVOption">📊 Open TradingView</div>
 <div id="copyOption">📋 Copy Symbol</div>
 <div id="favOption">⭐ Favorite Symbol</div>
+<div id="binanceOption">🔥 Open Binance Page</div>	
 <div id="deleteOption">❌ Delete Symbol</div>
 </div>
 
@@ -974,6 +975,20 @@ db.ref("favorites").set(favorites);
 hideMenu();
 };
 
+document.getElementById("binanceOption").onclick=()=>{
+
+if(contextSymbol){
+
+const url = "https://www.binance.com/en-IN/futures/" + contextSymbol;
+
+window.open(url,"_blank");
+
+}
+
+hideMenu();
+
+};
+	
 document.getElementById("deleteOption").onclick=()=>{
 
 if(contextSymbol){
