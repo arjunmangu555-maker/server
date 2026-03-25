@@ -370,8 +370,9 @@ white-space:nowrap;">
 
 <div class="settingRow">
 <button id="resetBtn" class="resetBtn">RESET (Clear All)</button>
+<button id="resetMasterBtn" class="resetBtn">Reset Master</button>
 </div>
-
+	
 </div>
 
 <div class="settingsFooter">
@@ -542,8 +543,8 @@ const lockRef = db.ref("scannerLock");
 
 const result = await lockRef.transaction(current => {
 
-if(current === null || Date.now() - current > 900000){
-return Date.now();
+if(current === null){
+return true;   
 }
 
 return;
@@ -581,6 +582,24 @@ location.reload();
 }
 
 };
+
+document.getElementById("resetMasterBtn").onclick = function(){
+
+if(!confirm("Force remove master scanner lock?")){
+return;
+}
+
+db.ref("scannerLock").remove().then(()=>{
+
+console.log("Master lock cleared");
+
+checkScannerLock();   // current tab tries to become master again
+
+}).catch(err=>{
+console.error("Error clearing master lock:",err);
+});
+
+};	
 
 async function fetchSymbols(){
 
