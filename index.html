@@ -1192,11 +1192,15 @@ divider.classList.add("active");
 document.addEventListener("touchmove",(e)=>{
 if(!isDragging) return;
 
-e.preventDefault(); // 🔥 IMPORTANT FIX
+e.preventDefault();
 
 let touch = e.touches[0];
 
+if(settings.swapLayout){
+lastPercent = ((window.innerWidth - touch.clientX) / window.innerWidth) * 100;
+}else{
 lastPercent = (touch.clientX / window.innerWidth) * 100;
+}
 
 
 if(lastPercent < 8) lastPercent = 8;
@@ -1229,8 +1233,11 @@ divider.classList.add("active");
 document.addEventListener("mousemove",(e)=>{
 if(!isDragging) return;
 
-// latest mouse position store
+if(settings.swapLayout){
+lastPercent = ((window.innerWidth - e.clientX) / window.innerWidth) * 100;
+}else{
 lastPercent = (e.clientX / window.innerWidth) * 100;
+}
 
 // limit
 if(lastPercent < 8) lastPercent = 8;
