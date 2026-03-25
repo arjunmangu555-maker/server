@@ -538,43 +538,17 @@ async function checkScannerLock(){
 
 const lockRef = db.ref("scannerLock");
 
-// 🔥 stale lock check
-const snap = await lockRef.get();
-
-if(snap.exists()){
-const val = snap.val();
-
-if(val && val.time && (Date.now() - val.time > 120000)){
-console.log("Removing stale lock...");
-await lockRef.remove();
-}
-}
-
 const result = await lockRef.transaction(current => {
 
-// 🔥 अगर कोई lock नहीं है → master बन जाओ
 if(current === null){
-return { id: CLIENT_ID, time: Date.now() };
+return true;   
 }
 
-// 🔥 अगर stale है → override
-if(current.time && (Date.now() - current.time > 120000)){
-return { id: CLIENT_ID, time: Date.now() };
-}
-
-// 🔥 अगर already मैं master हूँ
-if(current.id === CLIENT_ID){
-return { id: CLIENT_ID, time: Date.now() };
-}
-
-// ❌ किसी और का lock है
 return;
+
 });
 
-const lockValue = result.snapshot.val();
-
-if(lockValue && lockValue.id === CLIENT_ID){
-
+if(result.committed){
 if(!isMasterScanner){
 console.log("Became MASTER → starting scanner");
 
@@ -1357,7 +1331,6 @@ container.insertBefore(divider, right);
 }	
 
 let scannerRunning = false;
-const CLIENT_ID = "client_" + Date.now() + "_" + Math.random();	
 
 async function scannerLoop(){
 
@@ -1408,6 +1381,14 @@ applyLayout();   // 🔥 NEW
 
 init();
 
+window.addEventListener("unload", function(){
+if(isMasterScanner){
+const xhr = new XMLHttpRequest();
+xhr.open("DELETE", firebaseConfig.databaseURL + "/scannerLock.json", false);
+xhr.send(null);
+}
+});
+
 	
 // ===== SETTINGS MODAL LOGIC =====
 
@@ -1450,17 +1431,9 @@ document.getElementById("settingsPopup").style.display="none";
 
 /* TAB ACTIVE KEEP HACK */
 
-setInterval(async ()=>{
+setInterval(()=>{
 
 console.log("Scanner Alive", new Date().toLocaleTimeString());
-
-// 🔥 refresh lock (अगर master हो)
-if(isMasterScanner){
-db.ref("scannerLock").set({
-id: CLIENT_ID,
-time: Date.now()
-});
-}
 
 },60000);
 
