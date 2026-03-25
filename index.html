@@ -553,20 +553,26 @@ return;
 
 if(result.committed){
 
+if(!isMasterScanner){
+console.log("Became MASTER → starting scanner");
+enableWakeLock();
+scannerLoop();
+}
+
 isMasterScanner = true;
-
-console.log("MASTER SCANNER");
-
 document.getElementById("updateText").innerText = "Master Scanner";
 
 }else{
 
-console.log("VIEWER MODE");
+if(isMasterScanner){
+console.log("Lost MASTER → stopping scanner");
+scannerRunning = false;
+}
 
+isMasterScanner = false;
 document.getElementById("updateText").innerText = "Viewer Mode";
 
 }
-
 }
 	
 document.getElementById("resetBtn").onclick=()=>{
@@ -593,7 +599,7 @@ db.ref("scannerLock").remove().then(()=>{
 
 console.log("Master lock cleared");
 
-checkScannerLock();   // current tab tries to become master again
+checkScannerLock();  
 
 }).catch(err=>{
 console.error("Error clearing master lock:",err);
@@ -1319,30 +1325,29 @@ container.insertBefore(divider, right);
 
 }	
 
+let scannerRunning = false;
+
 async function scannerLoop(){
 
-while(true){
+if(scannerRunning) return;   // duplicate loop रोकता है
 
-try{
+scannerRunning = true;
 
+while(scannerRunning){
 await scan();
-
-}catch(e){
-
-console.log("SCAN ERROR:",e);
-
-}
-
 await new Promise(r=>setTimeout(r,300000));
-
 }
 
 }
+	
 async function init(){
 
 await loadList();
 
 await checkScannerLock();
+db.ref("scannerLock").on("value", ()=>{
+checkScannerLock();
+});	
 
 document.getElementById("soundToggle").checked = settings.sound;
 
