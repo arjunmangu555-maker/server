@@ -277,6 +277,18 @@ user-select:none;
 <div id="status">
 <span id="updateText">Starting...</span>
 <button id="themeBtn" onclick="toggleTheme()">☀️</button>
+
+<select id="timeframeSelect" style="font-size:15px;">
+<option value="1">1m</option>
+<option value="3">3m</option>
+<option value="5">5m</option>
+<option value="15" selected>15m</option>
+<option value="60">1h</option>
+<option value="1D">1D</option>
+<option value="1W">1W</option>
+<option value="1M">1M</option>
+</select>
+
 <button id="settingsBtn">⚙️</button>
 </div>
 
@@ -313,7 +325,7 @@ white-space:nowrap;">
 
 <div class="right">
 
-<div id="chart" style="height:calc(100% - 30px);width:100%;"></div>
+<div id="chart" style="height:100%;width:100%;"></div>
 
 </div>
 
@@ -419,7 +431,9 @@ sound:true,
 minRvol:15,
 positionUSD:5.5,
 rowHeight:28,
-swapLayout:false  
+swapLayout:false,
+timeframe:"15",
+theme:"light" 
 };
 	
 let favorites = [];
@@ -1043,7 +1057,7 @@ function initChart(){
 widget=new TradingView.widget({
 container_id:"chart",
 symbol:"BINANCE:BTCUSDT.P",
-interval:"15",
+interval: settings.timeframe,
 autosize:true,
 theme:currentTheme,
 style:"1",
@@ -1083,7 +1097,7 @@ widget=new TradingView.widget({
 
 container_id:"chart",
 symbol:"BINANCE:"+symbol+".P",
-interval:"15",
+interval: settings.timeframe,
 autosize:true,
 theme:currentTheme,
 style:"1",
@@ -1263,7 +1277,10 @@ divider.classList.remove("active");
 
 function toggleTheme(){
 
-currentTheme=currentTheme==="light"?"dark":"light";
+currentTheme = currentTheme==="light" ? "dark" : "light";
+
+settings.theme = currentTheme;
+saveSettings();
 
 if(selectedSymbol)
 changeChartSymbol(selectedSymbol);
@@ -1318,11 +1335,31 @@ await loadList();
 
 await checkScannerLock();
 
+if(settings.theme){
+currentTheme = settings.theme;
+}
+
 document.getElementById("soundToggle").checked = settings.sound;
 
 document.getElementById("minRvolInput").value=settings.minRvol;
 
 render();
+
+const tfSelect = document.getElementById("timeframeSelect");
+if(settings.timeframe){
+tfSelect.value = settings.timeframe;
+}
+
+tfSelect.onchange = ()=>{
+settings.timeframe = tfSelect.value;
+saveSettings();
+
+if(selectedSymbol){
+changeChartSymbol(selectedSymbol);
+}else{
+changeChartSymbol("BTCUSDT");
+}
+};
 
 await fetchSymbols();
 
