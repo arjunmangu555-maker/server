@@ -336,7 +336,7 @@ white-space:nowrap;">
 <div id="copyOption">📋 Copy Symbol</div>
 <div id="favOption">⭐ Favorite Symbol</div>
 <div id="binanceOption">🔥 Open Binance</div>	
-<div id="deleteOption">❌ Delete Symbol</div>
+<div id="deleteOption">❌ Delete + Ignore 1 Hrs</div>
 </div>
 
 <div id="settingsPopup">
@@ -439,6 +439,8 @@ theme:"light"
 let favorites = [];
 let lastSoundTime = 0;
 
+let ignoreList = JSON.parse(localStorage.getItem("ignoreList") || "{}");
+
 async function enableWakeLock(){
 
 try{
@@ -469,6 +471,15 @@ db.ref("scanner").set(highRvolSymbols);
 }
 
 async function loadList(){
+
+// CLEAN EXPIRED IGNORE SYMBOLS
+const now = Date.now();
+for(let s in ignoreList){
+if(ignoreList[s] < now){
+delete ignoreList[s];
+}
+}
+localStorage.setItem("ignoreList", JSON.stringify(ignoreList));
 
 // ⭐ LOAD FAVORITES FROM FIREBASE
 db.ref("favorites").on("value",(snap)=>{
@@ -690,6 +701,16 @@ let results=await Promise.all(promises);
 for(let item of results){
 
 if(item.r){
+
+// IGNORE CHECK
+if(ignoreList[item.s]){
+if(ignoreList[item.s] > Date.now()){
+continue; // skip ignored symbol
+}else{
+delete ignoreList[item.s];
+localStorage.setItem("ignoreList", JSON.stringify(ignoreList));
+}
+}
 
 let isNew = !highRvolSymbols[item.s];
 
@@ -1014,6 +1035,10 @@ if(contextSymbol){
 if(confirm("Delete "+contextSymbol+" ?")){
 
 delete highRvolSymbols[contextSymbol];
+
+// ADD TO IGNORE LIST (1 HOUR)
+ignoreList[contextSymbol] = Date.now() + 3600000;
+localStorage.setItem("ignoreList", JSON.stringify(ignoreList));
 
 saveList();
 
@@ -1448,5 +1473,4 @@ db.ref("scannerLock").remove();
 
 </body>
 </html>
-
 
